@@ -1,0 +1,26 @@
+﻿@inherits ErrorBoundaryBase
+
+<div class="error-boundary">
+    @if (CurrentException is not null)
+    {
+        <div class="alert alert-danger" role="alert">
+            <h4 class="alert-heading">An error occurred</h4>
+            <p>@CurrentException.Message</p>
+            <hr>
+            <p class="mb-0">Please try again later or contact support.</p>
+        </div>
+    }
+    else
+    {
+        @ChildContent
+    }
+</div>
+
+@code {
+    protected override Task OnErrorAsync(Exception exception)
+    {
+        // Log the exception or perform any other error handling logic here
+        Console.Error.WriteLine(exception);
+        return Task.CompletedTask;
+    }
+}

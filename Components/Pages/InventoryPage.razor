@@ -1,0 +1,116 @@
+﻿@page "/inventory"
+@inject NavigationManager Navigation
+@inject DatabaseService DatabaseService
+
+<h3>Inventory</h3>
+
+@if (_items == null)
+{
+        <p>Loading...</p>
+}
+else
+{
+        <table class="table table-hover table-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Category</th>
+                    <th>Quantity</th>
+                    <th>Price</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var item in _items)
+            {
+                        <tr>
+                            <td>@item.ItemID</td>
+                            <td>@item.ItemName</td>
+                            <td>@item.Quantity</td>
+                            <td>@item.RetailPrice</td>
+                            <td>
+                                <button @onclick="() => EditItem(item)">Edit</button>
+                                <button @onclick="() => DeleteItem(item)">Delete</button>
+                            </td>
+                        </tr>
+            }
+            </tbody>
+        </table>
+        <NativeDialog @ref="_dialogRef" 
+                  Title="@_dialogTitle" 
+                  OnClose="HandleDialogClose">
+        @if (_currentDialogContent != null)
+        {
+            @_currentDialogContent
+        }
+
+        </NativeDialog>
+
+        <button 
+            class="btn btn-primary mb-3" @onclick="OpenAddItemDialog">
+                Add New Item
+        </button>
+
+}
+@code {
+    private List<Items> _items = new();
+    private NativeDialog _dialogRef;
+    private string _dialogTitle = "";
+    private RenderFragment _currentDialogContent;
+    private Items _currentItem;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadItems();
+    }
+
+    private async Task LoadItems()
+    {
+        _items = await DatabaseService.GetItemsAsync();
+        StateHasChanged();
+    }
+
+    private void OpenAddItemDialog()
+    {
+        _currentItem = new Items();
+        _dialogTitle = "Add New Item";
+        _currentDialogContent = @<EditItemForm Item="_currentItem" />;
+        _dialogRef.Show();
+    }
+
+    private void EditItem(Items item)
+    {
+        _currentItem = item;
+        _dialogTitle = "Edit Item";
+        _currentDialogContent = @<EditItemForm Item="_currentItem" />;
+        _dialogRef.Show();
+    }
+
+    private void DeleteItem(Items item)
+    {
+        _currentItem = item;
+        _dialogTitle = "Confirm Delete";
+        _currentDialogContent = @<div>
+                Are you sure you want to delete @item.ItemName?
+            </div>;
+        _dialogRef.Show();
+    }
+
+    private async Task HandleDialogClose(bool confirmed)
+    {
+        if (confirmed)
+        {
+            if (_dialogTitle == "Confirm Delete")
+            {
+                await DatabaseService.DeleteItemAsync(_currentItem);
+            }
+            else
+            {
+                await DatabaseService.SaveItemAsync(_currentItem);
+            }
+            await LoadItems();
+        }
+    }
+}
