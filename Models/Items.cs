@@ -69,6 +69,7 @@ namespace Inventory.Models
         public enum SaleUnit
         {
           Store, Personal ,Clinic 
+
         }
     }
 }

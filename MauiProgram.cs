@@ -1,4 +1,5 @@
 ﻿using Inventory.Data;
+using Inventory.Services.Logging;
 using Inventory.ViewModels;
 using Microsoft.Extensions.Logging;
 
@@ -23,6 +24,7 @@ namespace Inventory
             builder.Services.AddTransient<MainPage>();
             builder.Services.AddSingleton<ItemViewModel>();
             builder.Services.AddScoped<ItemDetailViewModel>();
+            builder.Services.AddAppLogging();
 
 #if DEBUG
             builder.Services.AddBlazorWebViewDeveloperTools();

@@ -1,5 +1,4 @@
-﻿
-<EditForm Model="@Item" OnValidSubmit="@HandleValidSubmit">
+﻿<EditForm Model="@Item" OnValidSubmit="@HandleValidSubmit">
     <DataAnnotationsValidator />
     <ValidationSummary />
 
@@ -30,16 +29,6 @@
         </div>
 
         <div class="col-md-6 mb-3">
-            <label class="form-label">Status</label>
-            <InputSelect class="form-control" @bind-Value="Item.ItemStatus">
-                @foreach (var status in Enum.GetValues(typeof(Items.Status)))
-                {
-                    <option value="@status">@status</option>
-                }
-            </InputSelect>
-        </div>
-
-        <div class="col-md-6 mb-3">
             <label class="form-label">Manufacturer</label>
             <InputText class="form-control" @bind-Value="Item.Manufacturer" />
         </div>
@@ -54,14 +43,15 @@
             <InputDate class="form-control" @bind-Value="Item.ExpireDate" />
         </div>
     </div>
+
+    <button type="submit" class="btn btn-success">Save</button>
 </EditForm>
 
 @code {
-    [Parameter]
-    public Items Item { get; set; }
+    [Parameter] public Items Item { get; set; }
 
     private void HandleValidSubmit()
     {
-        // Validation happens in parent component
+        // Submit logic
     }
 }

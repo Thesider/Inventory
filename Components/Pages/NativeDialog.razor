@@ -1,11 +1,11 @@
 ﻿@inherits ComponentBase
 
-<div class="modal @(_isVisible ? "show d-block" : "")" tabindex="-1" role="dialog">
+<div class="modal @(_isVisible ? "show d-block" : "")" tabindex="-1" role="dialog" style="z-index: 1050;">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">@Title</h5>
-                <button type="button" class="close" @onclick="Close">
+                <button type="button" class="close" @onclick="Close" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
@@ -15,7 +15,7 @@
             <div class="modal-footer">
                 @if (ShowCancelButton)
                 {
-                        <button type="button" class="btn btn-secondary" @onclick="Close">Cancel</button>
+                    <button type="button" class="btn btn-secondary" @onclick="Close">Cancel</button>
                 }
                 <button type="button" class="btn btn-primary" @onclick="Confirm">@ConfirmButtonText</button>
             </div>
@@ -26,20 +26,11 @@
 @code {
     private bool _isVisible = false;
 
-    [Parameter]
-    public string Title { get; set; } = "Confirmation";
-
-    [Parameter]
-    public RenderFragment ChildContent { get; set; }
-
-    [Parameter]
-    public bool ShowCancelButton { get; set; } = true;
-
-    [Parameter]
-    public string ConfirmButtonText { get; set; } = "Confirm";
-
-    [Parameter]
-    public EventCallback<bool> OnClose { get; set; }
+    [Parameter] public string Title { get; set; } = "Confirmation";
+    [Parameter] public RenderFragment ChildContent { get; set; }
+    [Parameter] public bool ShowCancelButton { get; set; } = true;
+    [Parameter] public string ConfirmButtonText { get; set; } = "Confirm";
+    [Parameter] public EventCallback<bool> OnClose { get; set; }
 
     public void Show()
     {

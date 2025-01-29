@@ -1,12 +1,14 @@
 ﻿@page "/inventory"
+@using Inventory.Services.Logging
 @inject NavigationManager Navigation
 @inject DatabaseService DatabaseService
+@inject IAppLogger Logger
 
 <h3>Inventory</h3>
 
 @if (_items == null)
 {
-        <p>Loading...</p>
+        <div class="spinner-border" role="status"></div>
 }
 else
 {
@@ -17,7 +19,10 @@ else
                     <th>Name</th>
                     <th>Category</th>
                     <th>Quantity</th>
-                    <th>Price</th>
+                    <th>Retail Price</th>
+                    <th>Manufacturer</th>
+                    <th>Origin</th>
+                    <th>Expiration Date</th>
                     <th>Status</th>
                     <th>Actions</th>
                 </tr>
@@ -25,92 +30,182 @@ else
             <tbody>
             @foreach (var item in _items)
             {
-                        <tr>
+                        <tr class="@GetRowClass(item)">
                             <td>@item.ItemID</td>
                             <td>@item.ItemName</td>
+                            <td>@item.ItemCategory</td>
                             <td>@item.Quantity</td>
-                            <td>@item.RetailPrice</td>
+                            <td>@item.RetailPrice.ToString("C")</td>
+                            <td>@item.Manufacturer</td>
+                            <td>@item.Origin</td>
+                            <td>@item.ExpireDate.ToShortDateString()</td>
+                            <td>@GetItemStatus(item)</td>
                             <td>
-                                <button @onclick="() => EditItem(item)">Edit</button>
-                                <button @onclick="() => DeleteItem(item)">Delete</button>
+                                <button class="btn btn-outline-primary btn-sm" @onclick="() => EditItem(item)">Edit</button>
+                                <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteItem(item)">Delete</button>
                             </td>
                         </tr>
             }
             </tbody>
         </table>
-        <NativeDialog @ref="_dialogRef" 
-                  Title="@_dialogTitle" 
-                  OnClose="HandleDialogClose">
-        @if (_currentDialogContent != null)
-        {
-            @_currentDialogContent
-        }
 
-        </NativeDialog>
-
-        <button 
-            class="btn btn-primary mb-3" @onclick="OpenAddItemDialog">
-                Add New Item
+        <button class="btn btn-success mb-3" @onclick="OpenAddItemDialog">
+            <i class="fas fa-plus"></i> Add New Item
         </button>
 
+    @if (_isDialogVisible)
+    {
+                <NativeDialog @ref="_dialogRef"
+                              Title="@_dialogTitle"
+                              OnClose="HandleDialogClose">
+            @_currentDialogContent
+                </NativeDialog>
+    }
 }
+
 @code {
     private List<Items> _items = new();
-    private NativeDialog _dialogRef;
+    private NativeDialog? _dialogRef;
     private string _dialogTitle = "";
-    private RenderFragment _currentDialogContent;
-    private Items _currentItem;
+    private RenderFragment? _currentDialogContent;
+    private Items? _currentItem;
+    private bool _isDialogVisible = false;
 
     protected override async Task OnInitializedAsync()
     {
+        Logger.LogInformation("Loading inventory page");
         await LoadItems();
     }
 
     private async Task LoadItems()
     {
-        _items = await DatabaseService.GetItemsAsync();
-        StateHasChanged();
+        try
+        {
+            _items = await DatabaseService.GetItemsAsync();
+            CheckInventoryStatus();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError("Failed to load inventory items", ex);
+        }
+    }
+
+    private void CheckInventoryStatus()
+    {
+        foreach (var item in _items)
+        {
+            // Check expiration
+            if (item.ExpireDate <= DateTime.Today)
+            {
+                Logger.LogWarning($"Item {item.ItemName} (ID: {item.ItemID}) has expired on {item.ExpireDate.ToShortDateString()}");
+            }
+            else if (item.ExpireDate <= DateTime.Today.AddDays(30))
+            {
+                Logger.LogWarning($"Item {item.ItemName} (ID: {item.ItemID}) will expire soon on {item.ExpireDate.ToShortDateString()}");
+            }
+
+            // Check quantity
+            if (item.Quantity == 0)
+            {
+                Logger.LogWarning($"Item {item.ItemName} (ID: {item.ItemID}) is out of stock");
+            }
+            else if (item.Quantity <= 5)
+            {
+                Logger.LogWarning($"Item {item.ItemName} (ID: {item.ItemID}) is running low (Quantity: {item.Quantity})");
+            }
+        }
+    }
+
+    private string GetRowClass(Items item)
+    {
+        if (item.ExpireDate <= DateTime.Today)
+            return "table-danger";
+        if (item.Quantity == 0)
+            return "table-warning";
+        if (item.Quantity <= 5)
+            return "table-info";
+        return "";
+    }
+
+    private string GetItemStatus(Items item)
+    {
+        if (item.ExpireDate <= DateTime.Today)
+            return "Expired";
+        if (item.Quantity == 0)
+            return "Out of Stock";
+        if (item.Quantity <= 5)
+            return "Low Stock";
+        return "Available";
     }
 
     private void OpenAddItemDialog()
     {
-        _currentItem = new Items();
+        _currentItem = new Items { ExpireDate = DateTime.Today };
         _dialogTitle = "Add New Item";
-        _currentDialogContent = @<EditItemForm Item="_currentItem" />;
-        _dialogRef.Show();
+        _currentDialogContent = builder =>
+        {
+            builder.OpenComponent<EditItemForm>(0);
+            builder.AddAttribute(1, "Item", _currentItem);
+            builder.CloseComponent();
+        };
+        _isDialogVisible = true;
+        _dialogRef?.Show();
+        Logger.LogInformation("Opening dialog to add new item");
     }
 
     private void EditItem(Items item)
     {
         _currentItem = item;
         _dialogTitle = "Edit Item";
-        _currentDialogContent = @<EditItemForm Item="_currentItem" />;
-        _dialogRef.Show();
+        _currentDialogContent = builder =>
+        {
+            builder.OpenComponent<EditItemForm>(0);
+            builder.AddAttribute(1, "Item", _currentItem);
+            builder.CloseComponent();
+        };
+        _isDialogVisible = true;
+        _dialogRef?.Show();
+        Logger.LogInformation($"Editing item: {item.ItemName} (ID: {item.ItemID})");
     }
 
     private void DeleteItem(Items item)
     {
         _currentItem = item;
         _dialogTitle = "Confirm Delete";
-        _currentDialogContent = @<div>
-                Are you sure you want to delete @item.ItemName?
-            </div>;
-        _dialogRef.Show();
+        _currentDialogContent = builder =>
+        {
+            builder.AddContent(0, $"Are you sure you want to delete {item.ItemName}?");
+        };
+        _isDialogVisible = true;
+        _dialogRef?.Show();
+        Logger.LogWarning($"Attempting to delete item: {item.ItemName} (ID: {item.ItemID})");
     }
 
     private async Task HandleDialogClose(bool confirmed)
     {
+        _isDialogVisible = false;
         if (confirmed)
         {
-            if (_dialogTitle == "Confirm Delete")
+            try
             {
-                await DatabaseService.DeleteItemAsync(_currentItem);
+                if (_dialogTitle == "Confirm Delete")
+                {
+                    await DatabaseService.DeleteItemAsync(_currentItem);
+                    Logger.LogInformation($"Successfully deleted item: {_currentItem.ItemName} (ID: {_currentItem.ItemID})");
+                }
+                else
+                {
+                    await DatabaseService.SaveItemAsync(_currentItem);
+                    Logger.LogInformation($"Successfully saved item: {_currentItem.ItemName} (ID: {_currentItem.ItemID})");
+                }
+                await LoadItems();
             }
-            else
+            catch (Exception ex)
             {
-                await DatabaseService.SaveItemAsync(_currentItem);
+                Logger.LogError($"Failed to {(_dialogTitle == "Confirm Delete" ? "delete" : "save")} item: {_currentItem.ItemName}", ex);
+                throw;
             }
-            await LoadItems();
         }
     }
 }
