@@ -1,11 +1,5 @@
 ﻿using Inventory.Data;
 using Inventory.Models;
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Inventory.ViewModels
 {
@@ -36,7 +30,7 @@ namespace Inventory.ViewModels
             {
                 Item.ItemStatus = Items.Status.OutOfStock;
             }
-            else if (Item.Quantity <= 5) // Critical threshold (adjust as needed)
+            else if (Item.Quantity <= 5)
             {
                 Item.ItemStatus = Items.Status.RunningLow;
             }

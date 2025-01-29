@@ -1,7 +1,6 @@
-﻿using ObjCRuntime;
-using UIKit;
+﻿using UIKit;
 
-namespace Inventory
+namespace Inventory.Platforms.MacCatalyst
 {
     public class Program
     {

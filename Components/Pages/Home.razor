@@ -1,2 +1,380 @@
 ﻿@page "/"
-<h1>Home</h1>
+@inject NavigationManager Navigation
+@inject DatabaseService DatabaseService
+@inject ItemViewModel ItemViewModel
+@inject IAppLogger Logger
+
+<h3>Home</h3>
+
+@if (_items == null)
+{
+    <div class="spinner-border" role="status"></div>
+}
+else
+{
+    <div class="row">
+        <!-- Inventory Summary -->
+        <div class="col-md-6">
+            <h5>Inventory Summary</h5>
+            <table class="table table-hover table-striped">
+                <thead>
+                    <tr>
+                        <th>Category</th>
+                        <th>Total Items</th>
+                        <th>In Stock</th>
+                        <th>Low Stock</th>
+                        <th>Expired</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var category in _inventorySummary)
+                    {
+                        <tr>
+                            <td>@category.Key</td>
+                            <td>@category.Value.TotalItems</td>
+                            <td>@category.Value.InStock</td>
+                            <td>@category.Value.LowStock</td>
+                            <td>@category.Value.Expired</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Sell Item Form -->
+        <div class="col-md-6">
+            <h5>Sell Items</h5>
+            <EditForm Model="_saleFormModel" OnValidSubmit="ProcessSale">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                @foreach (var saleItem in _saleFormModel.SaleItems)
+                {
+                    <div class="mb-3 row">
+                        <div class="col">
+                            <label class="form-label">Select Item:</label>
+                            <select class="form-select" @bind="saleItem.ItemId">
+                                <option value="0">-- Select an Item --</option>
+                                @foreach (var item in _items.Where(i => i.Quantity > 0))
+                                {
+                                    <option value="@item.ItemID">@item.ItemName (@item.Quantity available)</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col">
+                            <label class="form-label">Quantity:</label>
+                            <input type="number" class="form-control" @bind="saleItem.Quantity" min="1" />
+                        </div>
+                        <div class="col-auto align-self-end">
+                            <button type="button" class="btn btn-danger" @onclick="@(() => RemoveSaleItem(saleItem))">Remove</button>
+                        </div>
+                    </div>
+                }
+                <button type="button" class="btn btn-secondary" @onclick="AddSaleItem">Add Item</button>
+                <button type="submit" class="btn btn-primary ms-2">Sell</button>
+            </EditForm>
+        </div>
+    </div>
+
+    <!-- Sales History Section -->
+    <div class="col-md-12 mt-4">
+        <h5>Sales History</h5>
+        <table class="table table-hover table-striped">
+            <thead>
+                <tr>
+                    <th>Item Name</th>
+                    <th>Quantity Sold</th>
+                    <th>Sale Date</th>
+                    <th>Total Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var sale in _salesHistory)
+                {
+                    <tr>
+                        <td>@sale.ItemName</td>
+                        <td>@sale.QuantitySold</td>
+                        <td>@sale.SaleDate.ToShortDateString()</td>
+                        <td>@sale.TotalAmount.ToString("C")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Monthly Sales Report -->
+    <div class="col-md-12 mt-4">
+        <h5>Monthly Sales Report</h5>
+        <table class="table table-hover table-striped">
+            <thead>
+                <tr>
+                    <th>Month</th>
+                    <th>Total Quantity Sold</th>
+                    <th>Total Revenue</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var report in _monthlySalesReport)
+                {
+                    <tr>
+                        <td>@report.Month.ToString("MMMM yyyy")</td>
+                        <td>@report.TotalQuantitySold</td>
+                        <td>@report.TotalRevenue.ToString("C")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private List<Items> _items = new();
+    private Dictionary<string, InventorySummary> _inventorySummary = new();
+    private int _selectedItemId = 0;
+    private int _sellQuantity = 1;
+    private List<Sales> _salesHistory = new();
+    private List<MonthlySalesReport> _monthlySalesReport = new();
+    private SaleFormModel _saleFormModel = new SaleFormModel();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Logger.LogInformation("Loading home page");
+        var loadDataTask = LoadData();
+        var loadSalesHistoryTask = LoadSalesHistory();
+        var generateMonthlySalesReportTask = GenerateMonthlySalesReport();
+
+        await Task.WhenAll(loadDataTask, loadSalesHistoryTask, generateMonthlySalesReportTask);
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            await ItemViewModel.LoadItems();
+            _items = ItemViewModel.Items.ToList();
+
+            _inventorySummary.Clear();
+            foreach (var category in Enum.GetValues(typeof(Items.Category)).Cast<Items.Category>())
+            {
+                var categoryItems = _items.Where(i => i.ItemCategory == category).ToList();
+                _inventorySummary[category.ToString()] = new InventorySummary
+                    {
+                        TotalItems = categoryItems.Count,
+                        InStock = categoryItems.Count(i => i.Quantity > 0),
+                        LowStock = categoryItems.Count(i => i.Quantity > 0 && i.Quantity <= 5),
+                        Expired = categoryItems.Count(i => i.ExpireDate <= DateTime.Today)
+                    };
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError("Failed to load home page data", ex);
+        }
+    }
+
+    private async Task LoadSalesHistory()
+    {
+        try
+        {
+            _salesHistory = await DatabaseService.GetSalesHistoryAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError("Failed to load sales history", ex);
+        }
+    }
+
+    private async Task GenerateMonthlySalesReport()
+    {
+        try
+        {
+            var salesHistory = await DatabaseService.GetSalesHistoryAsync();
+            _monthlySalesReport = salesHistory
+                .GroupBy(s => new { s.SaleDate.Year, s.SaleDate.Month })
+                .Select(g => new MonthlySalesReport
+                    {
+                        Month = new DateTime(g.Key.Year, g.Key.Month, 1),
+                        TotalQuantitySold = g.Sum(s => s.QuantitySold),
+                        TotalRevenue = g.Sum(s => s.TotalAmount)
+                    })
+                .OrderByDescending(r => r.Month)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError("Failed to generate monthly sales report", ex);
+        }
+    }
+    private async Task ProcessSale()
+    {
+        // Validate that there is at least one sale item
+        if (!_saleFormModel.SaleItems.Any())
+        {
+            Logger.LogWarning("No sale items added.");
+            return;
+        }
+
+        // Validate each sale item entry
+        foreach (var saleItem in _saleFormModel.SaleItems)
+        {
+            if (saleItem.ItemId == 0 || saleItem.Quantity <= 0)
+            {
+                Logger.LogWarning("Invalid sale item entry. Please check that an item is selected and quantity is greater than 0.");
+                return;
+            }
+        }
+
+        // Prepare to process each sale item
+        var saleRecords = new List<Sales>();
+        foreach (var saleItem in _saleFormModel.SaleItems)
+        {
+            var selectedItem = _items.FirstOrDefault(i => i.ItemID == saleItem.ItemId);
+            if (selectedItem == null)
+            {
+                Logger.LogWarning($"Selected item with ID {saleItem.ItemId} not found.");
+                return;
+            }
+            if (selectedItem.Quantity < saleItem.Quantity)
+            {
+                Logger.LogWarning($"Insufficient stock for item {selectedItem.ItemName}. Requested: {saleItem.Quantity}, Available: {selectedItem.Quantity}");
+                return;
+            }
+
+            // Deduct the sold quantity from the selected item
+            selectedItem.Quantity -= saleItem.Quantity;
+
+            // Create a sale record for the sale item
+            var saleRecord = new Sales
+                {
+                    ItemID = selectedItem.ItemID,
+                    ItemName = selectedItem.ItemName,
+                    QuantitySold = saleItem.Quantity,
+                    SaleDate = DateTime.Now,
+                    TotalAmount = saleItem.Quantity * selectedItem.RetailPrice
+                };
+            saleRecords.Add(saleRecord);
+
+            Logger.LogInformation($"Prepared sale for {saleItem.Quantity} unit(s) of {selectedItem.ItemName}.");
+        }
+
+        try
+        {
+            // Save updated items.
+            // (If the same item is sold multiple times in one transaction, consider aggregating the quantity adjustments.)
+            var itemsToUpdate = _saleFormModel.SaleItems
+                .Select(si => _items.FirstOrDefault(i => i.ItemID == si.ItemId))
+                .Distinct()
+                .ToList();
+
+            await DatabaseService.SaveItemAsync(itemsToUpdate);
+
+            // Save each sale record.
+            foreach (var saleRecord in saleRecords)
+            {
+                await DatabaseService.SaveSaleAsync(saleRecord);
+            }
+
+            Logger.LogInformation("Successfully processed multi-item sale.");
+
+            // Reload updated data.
+            var loadDataTask = LoadData();
+            var loadSalesHistoryTask = LoadSalesHistory();
+            var generateMonthlySalesReportTask = GenerateMonthlySalesReport();
+
+            await Task.WhenAll(loadDataTask, loadSalesHistoryTask, generateMonthlySalesReportTask);
+
+            // Reset the sale form.
+            _saleFormModel = new SaleFormModel();
+            _saleFormModel.SaleItems.Add(new SaleItem());
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError("Failed to process multi-item sale.", ex);
+        }
+    }
+    private void AddSaleItem()
+    {
+        _saleFormModel.SaleItems.Add(new SaleItem());
+    }
+
+    private void RemoveSaleItem(SaleItem saleItem)
+    {
+        _saleFormModel.SaleItems.Remove(saleItem);
+    }
+
+
+    private async Task SellItem()
+    {
+        if (_selectedItemId == 0 || _sellQuantity <= 0)
+        {
+            Logger.LogWarning("Invalid sell operation: No item selected or invalid quantity.");
+            return;
+        }
+
+        var selectedItem = _items.FirstOrDefault(i => i.ItemID == _selectedItemId);
+        if (selectedItem == null || selectedItem.Quantity < _sellQuantity)
+        {
+            Logger.LogWarning($"Invalid sell operation: Insufficient stock for item {selectedItem?.ItemName}.");
+            return;
+        }
+
+        try
+        {
+            selectedItem.Quantity -= _sellQuantity;
+
+            // Save changes to the database
+            await DatabaseService.SaveItemAsync(new List<Items> { selectedItem });
+            // Log the transaction
+            var sale = new Sales
+                {
+                    ItemID = selectedItem.ItemID,
+                    ItemName = selectedItem.ItemName,
+                    QuantitySold = _sellQuantity,
+                    SaleDate = DateTime.Now,
+                    TotalAmount = _sellQuantity * selectedItem.RetailPrice
+                };
+            await DatabaseService.SaveSaleAsync(sale);
+
+            Logger.LogInformation($"Sold {_sellQuantity} units of {selectedItem.ItemName} (ID: {selectedItem.ItemID}). Remaining stock: {selectedItem.Quantity}");
+
+            // Reload data to reflect changes
+            var loadDataTask = LoadData();
+            var loadSalesHistoryTask = LoadSalesHistory();
+            var generateMonthlySalesReportTask = GenerateMonthlySalesReport();
+
+            await Task.WhenAll(loadDataTask, loadSalesHistoryTask, generateMonthlySalesReportTask);
+
+            // Reset form
+            _selectedItemId = 0;
+            _sellQuantity = 1;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError($"Failed to sell item: {selectedItem?.ItemName}", ex);
+        }
+    }
+    public class SaleItem
+    {
+        public int ItemId { get; set; }
+        public int Quantity { get; set; } = 0;
+    }
+    public class SaleFormModel
+    {
+        public List<SaleItem> SaleItems { get; set; } = new List<SaleItem>();
+    }
+
+    public class InventorySummary
+    {
+        public int TotalItems { get; set; }
+        public int InStock { get; set; }
+        public int LowStock { get; set; }
+        public int Expired { get; set; }
+    }
+
+    public class MonthlySalesReport
+    {
+        public DateTime Month { get; set; }
+        public int TotalQuantitySold { get; set; }
+        public double TotalRevenue { get; set; }
+    }
+}

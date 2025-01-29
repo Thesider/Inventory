@@ -114,3 +114,15 @@ h1:focus {
         padding-left: env(safe-area-inset-left);
     }
 }
+.search-container {
+    position: relative;
+}
+
+.filter-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    display: none;
+    z-index: 1;
+    width: 100%;
+}

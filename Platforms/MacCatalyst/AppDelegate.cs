@@ -1,6 +1,6 @@
 ﻿using Foundation;
 
-namespace Inventory
+namespace Inventory.Platforms.MacCatalyst
 {
     [Register("AppDelegate")]
     public class AppDelegate : MauiUIApplicationDelegate

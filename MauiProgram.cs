@@ -1,4 +1,5 @@
 ﻿using Inventory.Data;
+using Inventory.Logger;
 using Inventory.ViewModels;
 using Microsoft.Extensions.Logging;
 
@@ -12,7 +13,7 @@ namespace Inventory
             var builder = MauiApp.CreateBuilder();
             builder
                 .UseMauiApp<App>()
-               
+
                 .ConfigureFonts(fonts =>
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
@@ -23,10 +24,11 @@ namespace Inventory
             builder.Services.AddTransient<MainPage>();
             builder.Services.AddSingleton<ItemViewModel>();
             builder.Services.AddScoped<ItemDetailViewModel>();
+            builder.Services.AddAppLogging();
 
 #if DEBUG
             builder.Services.AddBlazorWebViewDeveloperTools();
-    		builder.Logging.AddDebug();
+            builder.Logging.AddDebug();
 #endif
 
             return builder.Build();

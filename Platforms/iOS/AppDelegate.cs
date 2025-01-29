@@ -1,6 +1,6 @@
 ﻿using Foundation;
 
-namespace Inventory
+namespace Inventory.Platforms.iOS
 {
     [Register("AppDelegate")]
     public class AppDelegate : MauiUIApplicationDelegate

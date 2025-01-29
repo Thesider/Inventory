@@ -7,38 +7,100 @@ namespace Inventory.Data
     public class DatabaseService
     {
         private readonly SQLiteAsyncConnection _database;
+        private List<Items> _cachedItems;
 
         public DatabaseService()
         {
-            var databasePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "inventory.db");
-            _database = new SQLiteAsyncConnection(databasePath);
-            _database.ExecuteAsync("DROP TABLE IF EXISTS Items").Wait();
+            var databasePath = Constants.DatabasePath;
+#if DEBUG
+            try
+            {
+                if (File.Exists(databasePath))
+                {
+                    File.Delete(databasePath);
+                }
+            }
+            catch (IOException ex)
+            {
 
-            _database.CreateTableAsync<Items>().Wait();
-        
+                Console.WriteLine($"File deletion failed: {ex.Message}");
+            }
+#endif
+            _database = new SQLiteAsyncConnection(databasePath, Constants.Flags);
         }
 
-        public Task<List<Items>> GetItemsAsync()
+        public async Task InitializeAsync()
         {
-            return _database.Table<Items>().ToListAsync();
+            await InitializeDatabase();
         }
+        private void LogError(Exception ex)
+        {
+            Debug.WriteLine($"Error: {ex.Message}");
+        }
+
+        private async Task InitializeDatabase()
+        {
+            try
+            {
+                Debug.WriteLine($"Attempting to create table 'Items' at path: {Constants.DatabasePath}");
+                await _database.CreateTableAsync(typeof(Items));
+                Debug.WriteLine("Table 'Items' created successfully.");
+
+                Debug.WriteLine($"Attempting to create table 'Sales' at path: {Constants.DatabasePath}");
+                await _database.CreateTableAsync(typeof(Sales));
+                Debug.WriteLine("Table 'Sales' created successfully.");
+
+                Debug.WriteLine("Database initialized successfully.");
+            }
+            catch (SQLiteException sqlEx)
+            {
+                LogError(sqlEx);
+                throw;
+            }
+            catch (Exception ex)
+            {
+                LogError(ex);
+                throw;
+            }
+        }
+
+        public async Task<List<Items>> GetItemsAsync()
+        {
+            if (_cachedItems == null)
+            {
+                _cachedItems = await _database.Table<Items>().ToListAsync();
+            }
+            return _cachedItems;
+        }
+
         public Task<Items> GetItemAsync(int id)
         {
             return _database.Table<Items>()
                             .Where(i => i.ItemID == id)
                             .FirstOrDefaultAsync();
         }
-        public Task<int> SaveItemAsync(Items item)
+
+        public async Task<int> SaveItemAsync(List<Items> items)
         {
-            if (item.ItemID != 0)
+            int result = 0;
+            await _database.RunInTransactionAsync(tran =>
             {
-                return _database.UpdateAsync(item);
-            }
-            else
-            {
-                return _database.InsertAsync(item);
-            }
+                foreach (var item in items)
+                {
+                    if (item.ItemID != 0)
+                    {
+                        result += tran.Update(item);
+                    }
+                    else
+                    {
+                        result += tran.Insert(item);
+                    }
+                }
+            });
+            return result;
+
         }
+        //Item session of the DatabaseService class
         public Task<int> AddItemAsync(Items item)
         {
             return _database.InsertAsync(item);
@@ -53,6 +115,34 @@ namespace Inventory.Data
         {
             return _database.DeleteAsync(item);
         }
-       
+        private async Task<bool> IsItemNameUniqueAsync(string itemName, int itemId = 0)
+        {
+            var existingItem = await _database.Table<Items>()
+                                              .Where(i => i.ItemName == itemName && i.ItemID != itemId)
+                                              .FirstOrDefaultAsync();
+            return existingItem == null;
+        }
+        //sales session of the DatabaseService class
+        public Task<List<Sales>> GetSalesAsync()
+        {
+            return _database.Table<Sales>().ToListAsync();
+        }
+        public async Task SaveSaleAsync(Sales sale)
+        {
+            await _database.InsertAsync(sale);
+        }
+        public Task<int> DeleteSaleAsync(Sales sale)
+        {
+            return _database.DeleteAsync(sale);
+        }
+
+        public async Task<List<Sales>> GetSalesHistoryAsync()
+        {
+            return await _database.Table<Sales>().ToListAsync();
+        }
+
+
+
+
     }
 }

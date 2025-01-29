@@ -1,116 +1,281 @@
 ﻿@page "/inventory"
-@inject NavigationManager Navigation
 @inject DatabaseService DatabaseService
+@inject ItemViewModel ItemViewModel
+@inject IAppLogger Logger
 
 <h3>Inventory</h3>
 
-@if (_items == null)
+@if (ItemViewModel.FilteredItems == null)
 {
-        <p>Loading...</p>
+    <div class="spinner-border" role="status"></div>
 }
 else
 {
-        <table class="table table-hover table-striped">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Category</th>
-                    <th>Quantity</th>
-                    <th>Price</th>
-                    <th>Status</th>
-                    <th>Actions</th>
+    <div class="mb-3">
+        <div class="row">
+            <div class="col-md-4">
+                <select class="form-control" @bind="_filterColumn" @bind:event="oninput">
+                    <option value="Name">Name</option>
+                    <option value="Category">Category</option>
+                    <option value="Manufacturer">Manufacturer</option>
+                    <option value="Origin">Origin</option>
+                    <option value="WholesalePrice">Wholesale Price</option>
+                    <option value="RetailPrice">Retail Price</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <input type="text"
+                class="form-control"
+                placeholder="Search..."
+                value="@_filterText"
+                @oninput="DebounceFilterChange" />
+            </div>
+        </div>
+    </div>
+
+    <table class="table table-hover table-striped table-bordered">
+        <thead class="thead-light">
+            <tr>
+                <th>
+                    <div class="d-flex align-items-center cursor-pointer" @onclick="@(() => SortBy("id"))">
+                        ID
+                        <span class="ms-1">@GetSortIcon("id")</span>
+                    </div>
+                </th>
+                <th>
+                    <div class="d-flex align-items-center cursor-pointer" @onclick="@(() => SortBy("name"))">
+                        Name
+                        <span class="ms-1">@GetSortIcon("name")</span>
+                    </div>
+                </th>
+                <th>
+                    <div class="d-flex align-items-center cursor-pointer" @onclick="@(() => SortBy("category"))">
+                        Category
+                        <span class="ms-1">@GetSortIcon("category")</span>
+                    </div>
+                </th>
+                <th>
+                    <div class="d-flex align-items-center cursor-pointer" @onclick="@(() => SortBy("quantity"))">
+                        Quantity
+                        <span class="ms-1">@GetSortIcon("quantity")</span>
+                    </div>
+                </th>
+                <th>
+                    <div class="d-flex align-items-center cursor-pointer" @onclick="@(() => SortBy("retailprice"))">
+                        Retail Price
+                        <span class="ms-1">@GetSortIcon("retailprice")</span>
+                    </div>
+                </th>
+                <th>
+                    <div class="d-flex align-items-center cursor-pointer" @onclick="@(() => SortBy("wholesaleprice"))">
+                        Wholesale Price
+                        <span class="ms-1">@GetSortIcon("wholesaleprice")</span>
+                    </div>
+                </th>
+                <th>
+                    <div class="d-flex align-items-center cursor-pointer" @onclick="@(() => SortBy("manufacturer"))">
+                        Manufacturer
+                        <span class="ms-1">@GetSortIcon("manufacturer")</span>
+                    </div>
+                </th>
+                <th>
+                    <div class="d-flex align-items-center cursor-pointer" @onclick="@(() => SortBy("origin"))">
+                        Origin
+                        <span class="ms-1">@GetSortIcon("origin")</span>
+                    </div>
+                </th>
+                <th>
+                    <div class="d-flex align-items-center cursor-pointer" @onclick="@(() => SortBy("expiredate"))">
+                        Expiration Date
+                        <span class="ms-1">@GetSortIcon("expiredate")</span>
+                    </div>
+                </th>
+                <th>
+                    <div class="d-flex align-items-center cursor-pointer" @onclick="@(() => SortBy("status"))">
+                        Status
+                        <span class="ms-1">@GetSortIcon("status")</span>
+                    </div>
+                </th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <Virtualize Items="ItemViewModel.FilteredItems" Context="item">
+                <tr class="@ItemViewModel.GetRowClass(item)">
+                    <td>@item.ItemID</td>
+                    <td>@item.ItemName</td>
+                    <td>@item.ItemCategory</td>
+                    <td>@item.Quantity</td>
+                    <td>@item.RetailPrice.ToString("C")</td>
+                    <td>@item.WholesalePrice.ToString("C")</td>
+                    <td>@item.Manufacturer</td>
+                    <td>@item.Origin</td>
+                    <td>@item.ExpireDate.ToShortDateString()</td>
+                    <td>@ItemViewModel.GetItemStatus(item)</td>
+                    <td>
+                        <button class="btn btn-outline-primary btn-sm" @onclick="() => EditItem(item)">Edit</button>
+                        <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteItem(item)">Delete</button>
+                    </td>
                 </tr>
-            </thead>
-            <tbody>
-            @foreach (var item in _items)
-            {
-                        <tr>
-                            <td>@item.ItemID</td>
-                            <td>@item.ItemName</td>
-                            <td>@item.Quantity</td>
-                            <td>@item.RetailPrice</td>
-                            <td>
-                                <button @onclick="() => EditItem(item)">Edit</button>
-                                <button @onclick="() => DeleteItem(item)">Delete</button>
-                            </td>
-                        </tr>
-            }
-            </tbody>
-        </table>
-        <NativeDialog @ref="_dialogRef" 
-                  Title="@_dialogTitle" 
-                  OnClose="HandleDialogClose">
-        @if (_currentDialogContent != null)
-        {
+            </Virtualize>
+        </tbody>
+    </table>
+
+    <button class="btn btn-success mb-3" @onclick="OpenAddItemDialog">
+        <i class="fas fa-plus"></i> Add New Item
+    </button>
+
+    @if (_isDialogVisible)
+    {
+        <NativeDialog @ref="_dialogRef"
+        Title="@_dialogTitle"
+        OnClose="HandleDialogClose">
             @_currentDialogContent
-        }
-
         </NativeDialog>
-
-        <button 
-            class="btn btn-primary mb-3" @onclick="OpenAddItemDialog">
-                Add New Item
-        </button>
-
+    }
 }
+
 @code {
     private List<Items> _items = new();
-    private NativeDialog _dialogRef;
+    private NativeDialog? _dialogRef;
     private string _dialogTitle = "";
-    private RenderFragment _currentDialogContent;
-    private Items _currentItem;
+    private RenderFragment? _currentDialogContent;
+    private Items? _currentItem;
+    private bool _isDialogVisible = false;
+    private string _filterText = "";
+    private string _filterColumn = "Name";
+    private string _currentSortBy = "Name";
+    private bool _ascending = true;
+    private Timer? _debounceTimer;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadItems();
+        Logger.LogInformation("Starting to load inventory page.");
+        try
+        {
+            await ItemViewModel.LoadItems();
+            _items = ItemViewModel.Items.ToList();
+            StateHasChanged();
+            Logger.LogInformation($"Loaded {_items.Count} items.");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError("Failed to load inventory page data", ex);
+        }
+        Logger.LogInformation("Finished loading inventory page.");
     }
 
-    private async Task LoadItems()
+    private void DebounceFilterChange(ChangeEventArgs e)
     {
-        _items = await DatabaseService.GetItemsAsync();
-        StateHasChanged();
+        _filterText = e.Value.ToString();
+        _debounceTimer?.Dispose();
+        _debounceTimer = new Timer(OnFilterChange, null, 300, Timeout.Infinite);
+    }
+
+    private void OnFilterChange(object? state)
+    {
+        try
+        {
+            ItemViewModel.FilterItems(_filterText, _filterColumn);
+            ItemViewModel.SortItems(_currentSortBy, _ascending);
+            InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError("Error applying filter", ex);
+        }
     }
 
     private void OpenAddItemDialog()
     {
-        _currentItem = new Items();
+        _currentItem = new Items { ItemName = string.Empty, ExpireDate = DateTime.Today };
         _dialogTitle = "Add New Item";
-        _currentDialogContent = @<EditItemForm Item="_currentItem" />;
-        _dialogRef.Show();
+        _currentDialogContent = builder =>
+        {
+            builder.OpenComponent<EditItemForm>(0);
+            builder.AddAttribute(1, "Item", _currentItem);
+            builder.CloseComponent();
+        };
+        _isDialogVisible = true;
+        _dialogRef?.Show();
+        Logger.LogInformation("Opening dialog to add new item");
     }
 
     private void EditItem(Items item)
     {
         _currentItem = item;
         _dialogTitle = "Edit Item";
-        _currentDialogContent = @<EditItemForm Item="_currentItem" />;
-        _dialogRef.Show();
+        _currentDialogContent = builder =>
+        {
+            builder.OpenComponent<EditItemForm>(0);
+            builder.AddAttribute(1, "Item", _currentItem);
+            builder.CloseComponent();
+        };
+        _isDialogVisible = true;
+        _dialogRef?.Show();
+        Logger.LogInformation($"Editing item: {item.ItemName} (ID: {item.ItemID})");
     }
 
     private void DeleteItem(Items item)
     {
         _currentItem = item;
         _dialogTitle = "Confirm Delete";
-        _currentDialogContent = @<div>
-                Are you sure you want to delete @item.ItemName?
-            </div>;
-        _dialogRef.Show();
+        _currentDialogContent = builder =>
+        {
+            builder.AddContent(0, $"Are you sure you want to delete {item.ItemName}?");
+        };
+        _isDialogVisible = true;
+        _dialogRef?.Show();
+        Logger.LogWarning($"Attempting to delete item: {item.ItemName} (ID: {item.ItemID})");
+    }
+
+    private void SortBy(string column)
+    {
+        if (_currentSortBy == column)
+        {
+            _ascending = !_ascending;
+        }
+        else
+        {
+            _currentSortBy = column;
+            _ascending = true;
+        }
+
+        ItemViewModel.SortItems(_currentSortBy, _ascending);
+        StateHasChanged();
+    }
+
+    private string GetSortIcon(string column)
+    {
+     
+
+        return _ascending ? "↑" : "↓";
     }
 
     private async Task HandleDialogClose(bool confirmed)
     {
+        _isDialogVisible = false;
         if (confirmed)
         {
-            if (_dialogTitle == "Confirm Delete")
+            try
             {
-                await DatabaseService.DeleteItemAsync(_currentItem);
+                if (_dialogTitle == "Confirm Delete")
+                {
+                    await DatabaseService.DeleteItemAsync(_currentItem);
+                    Logger.LogInformation($"Successfully deleted item: {_currentItem.ItemName} (ID: {_currentItem.ItemID})");
+                }
+                else
+                {
+                    await DatabaseService.SaveItemAsync(new List<Items> { _currentItem });
+                    Logger.LogInformation($"Successfully saved item: {_currentItem.ItemName} (ID: {_currentItem.ItemID})");
+                }
+                await ItemViewModel.LoadItems();
+                _items = ItemViewModel.Items.ToList();
             }
-            else
+            catch (Exception ex)
             {
-                await DatabaseService.SaveItemAsync(_currentItem);
+                Logger.LogError($"Failed to {(_dialogTitle == "Confirm Delete" ? "delete" : "save")} item: {_currentItem?.ItemName}", ex);
             }
-            await LoadItems();
         }
     }
 }

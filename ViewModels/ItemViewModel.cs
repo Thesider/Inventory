@@ -1,4 +1,5 @@
 using Inventory.Data;
+using Inventory.Logger;
 using Inventory.Models;
 using System.Collections.ObjectModel;
 
@@ -6,23 +7,38 @@ namespace Inventory.ViewModels;
 
 public class ItemViewModel
 {
-	
     private readonly DatabaseService _db;
+    private readonly IAppLogger _logger;
 
     public ObservableCollection<Items> Items { get; } = new();
+    private List<Items> _allItems = new();
+    public List<Items> FilteredItems { get; private set; } = new();
 
-    public ItemViewModel(DatabaseService db)
+    public ItemViewModel(DatabaseService db, IAppLogger logger)
     {
-        _db = db;
+        _db = db ?? throw new ArgumentNullException(nameof(db));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public async Task LoadItems()
     {
-        var items = await _db.GetItemsAsync();
-        Items.Clear();
-        foreach (var item in items)
+        try
         {
-            Items.Add(item);
+            _logger.LogInformation("Starting to load items.");
+            var items = await _db.GetItemsAsync();
+            _allItems = items.ToList();
+            FilteredItems = _allItems.ToList();
+            Items.Clear();
+            foreach (var item in _allItems)
+            {
+                Items.Add(item);
+            }
+            _logger.LogInformation($"Finished loading items. Total items loaded: {_allItems.Count}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Error loading items", ex);
+            throw;
         }
     }
 
@@ -34,4 +50,143 @@ public class ItemViewModel
             await _db.DeleteItemAsync(item);
         }
     }
+
+    public async Task SaveItem(Items item)
+    {
+        try
+        {
+            await _db.SaveItemAsync(new List<Items> { item });
+            if (!Items.Contains(item))
+            {
+                Items.Add(item);
+            }
+            _logger.LogInformation($"Saved item: {item.ItemName} (ID: {item.ItemID})");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Failed to save item: {item.ItemName}", ex);
+        }
+    }
+
+
+
+    public void CheckInventoryStatus(Items item)
+    {
+        if (item.ExpireDate <= DateTime.Today)
+        {
+            _logger.LogWarning($"Item {item.ItemName} (ID: {item.ItemID}) has expired.");
+        }
+        else if (item.ExpireDate <= DateTime.Today.AddDays(30))
+        {
+            _logger.LogWarning($"Item {item.ItemName} (ID: {item.ItemID}) will expire soon.");
+        }
+
+        if (item.Quantity == 0)
+        {
+            _logger.LogWarning($"Item {item.ItemName} (ID: {item.ItemID}) is out of stock.");
+        }
+        else if (item.Quantity <= 5)
+        {
+            _logger.LogWarning($"Item {item.ItemName} (ID: {item.ItemID}) is running low.");
+        }
+    }
+    public void SortItems(string sortBy, bool ascending)
+    {
+        try
+        {
+            _logger.LogInformation($"Sorting items by {sortBy} in {(ascending ? "ascending" : "descending")} order");
+
+            FilteredItems = sortBy.ToLower() switch
+            {
+                "name" => ascending
+                    ? FilteredItems.OrderBy(i => i.ItemName).ToList()
+                    : FilteredItems.OrderByDescending(i => i.ItemName).ToList(),
+                "quantity" => ascending
+                    ? FilteredItems.OrderBy(i => i.Quantity).ToList()
+                    : FilteredItems.OrderByDescending(i => i.Quantity).ToList(),
+                "expiredate" => ascending
+                    ? FilteredItems.OrderBy(i => i.ExpireDate).ToList()
+                    : FilteredItems.OrderByDescending(i => i.ExpireDate).ToList(),
+                "id" => ascending
+                    ? FilteredItems.OrderBy(i => i.ItemID).ToList()
+                    : FilteredItems.OrderByDescending(i => i.ItemID).ToList(),
+                "wholesaleprice" => ascending
+                    ? FilteredItems.OrderBy(i => i.WholesalePrice).ToList()
+                    : FilteredItems.OrderByDescending(i => i.WholesalePrice).ToList(),
+                "retailprice" => ascending
+                    ? FilteredItems.OrderBy(i => i.RetailPrice).ToList()
+                    : FilteredItems.OrderByDescending(i => i.RetailPrice).ToList(),
+                "category" => ascending
+                    ? FilteredItems.OrderBy(i => i.ItemCategory).ToList()
+                    : FilteredItems.OrderByDescending(i => i.ItemCategory).ToList(),
+                "manufacturer" => ascending
+                    ? FilteredItems.OrderBy(i => i.Manufacturer).ToList()
+                    : FilteredItems.OrderByDescending(i => i.Manufacturer).ToList(),
+                "origin" => ascending
+                    ? FilteredItems.OrderBy(i => i.Origin).ToList()
+                    : FilteredItems.OrderByDescending(i => i.Origin).ToList(),
+                "status" => ascending
+                    ? FilteredItems.OrderBy(i => GetItemStatus(i)).ToList()
+                    : FilteredItems.OrderByDescending(i => GetItemStatus(i)).ToList(),
+                _ => FilteredItems.OrderBy(i => i.ItemName).ToList()
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error sorting items by {sortBy}", ex);
+            throw;
+        }
+    }
+    public void FilterItems(string filterText, string filterColumn)
+    {
+        try
+        {
+            _logger.LogInformation($"Filtering items by {filterColumn} with text: {filterText}");
+
+            if (string.IsNullOrWhiteSpace(filterText))
+            {
+                FilteredItems = _allItems.ToList();
+                return;
+            }
+
+            FilteredItems = filterColumn.ToLower() switch
+            {
+                "name" => _allItems.Where(i => i.ItemName.Contains(filterText, StringComparison.OrdinalIgnoreCase)).ToList(),
+                "wholesaleprice" => _allItems.Where(i => i.WholesalePrice.ToString().Contains(filterText)).ToList(),
+                "retailprice" => _allItems.Where(i => i.RetailPrice.ToString().Contains(filterText)).ToList(),
+                "category" => _allItems.Where(i => i.ItemCategory.ToString().Contains(filterText, StringComparison.OrdinalIgnoreCase)).ToList(),
+                "manufacturer" => _allItems.Where(i => i.Manufacturer.Contains(filterText, StringComparison.OrdinalIgnoreCase)).ToList(),
+                "origin" => _allItems.Where(i => i.Origin.Contains(filterText, StringComparison.OrdinalIgnoreCase)).ToList(),
+                _ => _allItems.Where(i => i.ItemName.Contains(filterText, StringComparison.OrdinalIgnoreCase)).ToList()
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error filtering items by {filterColumn}", ex);
+            throw;
+        }
+    }
+
+    public string GetItemStatus(Items item)
+    {
+        if (item.ExpireDate <= DateTime.Today)
+            return "Expired";
+        if (item.Quantity == 0)
+            return "Out of Stock";
+        if (item.Quantity <= 5)
+            return "Low Stock";
+        return "Available";
+    }
+
+    public string GetRowClass(Items item)
+    {
+        if (item.ExpireDate <= DateTime.Today)
+            return "table-danger";
+        if (item.Quantity == 0)
+            return "table-warning";
+        if (item.Quantity <= 5)
+            return "table-info";
+        return "";
+    }
+
 }

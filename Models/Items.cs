@@ -1,5 +1,4 @@
 using SQLite;
-using System;
 
 namespace Inventory.Models
 {
@@ -11,13 +10,13 @@ namespace Inventory.Models
         public int ItemID { get; set; }
 
         [Column("Name")]
-        public string ItemName { get; set; }
+        public string? ItemName { get; set; }
 
         [Column("Origin")]
-        public string Origin { get; set; }
+        public string? Origin { get; set; }
 
         [Column("Manufacturer")]
-        public string Manufacturer { get; set; }
+        public string? Manufacturer { get; set; }
 
         [Column("Quantity")]
         public int Quantity { get; set; }
@@ -30,16 +29,14 @@ namespace Inventory.Models
         [Column("ExpireDate")]
         public DateTime ExpireDate { get; set; }
 
-       
-
-
-
         [Column("ItemCategory")]
         public int ItemCategoryInt
         {
             get => (int)ItemCategory;
             set => ItemCategory = (Category)value;
         }
+
+
 
 
         [Ignore]
@@ -66,9 +63,6 @@ namespace Inventory.Models
             Available, OutOfStock, Expired, RunningLow
         }
 
-        public enum SaleUnit
-        {
-          Store, Personal ,Clinic 
-        }
+
     }
 }
