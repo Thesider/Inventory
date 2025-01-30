@@ -17,7 +17,8 @@ else
         <p><strong>Origin:</strong> @item.Origin</p>
         <p><strong>Manufacturer:</strong> @item.Manufacturer</p>
         <p><strong>Quantity:</strong> @item.Quantity</p>
-        <p><strong>Price:</strong> @item.RetailPrice</p>
+        <p><strong>Retail Price:</strong> @item.RetailPrice</p>
+        <p><strong>Wholesale Price:</strong> @item.WholesalePrice</p>
     </div>
     <button @onclick="GoBack">Back to Inventory</button>
 }
@@ -35,6 +36,6 @@ else
 
     private void GoBack()
     {
-        Navigation.NavigateTo("/inventory");
+        Navigation.NavigateTo("/");
     }
 }

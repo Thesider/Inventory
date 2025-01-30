@@ -1,65 +1,68 @@
 ﻿@page "/inventory"
-@using Inventory.Services.Logging
 @inject NavigationManager Navigation
 @inject DatabaseService DatabaseService
+@inject ItemViewModel ItemViewModel
 @inject IAppLogger Logger
+
 
 <h3>Inventory</h3>
 
 @if (_items == null)
 {
-        <div class="spinner-border" role="status"></div>
+    <div class="spinner-border" role="status"></div>
 }
 else
 {
-        <table class="table table-hover table-striped">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Category</th>
-                    <th>Quantity</th>
-                    <th>Retail Price</th>
-                    <th>Manufacturer</th>
-                    <th>Origin</th>
-                    <th>Expiration Date</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
+    <table class="table table-hover table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Quantity</th>
+                <th>Retail Price</th>
+                <th>Wholesale Price</th>
+                <th>Manufacturer</th>
+                <th>Origin</th>
+                <th>Expiration Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
             @foreach (var item in _items)
             {
-                        <tr class="@GetRowClass(item)">
-                            <td>@item.ItemID</td>
-                            <td>@item.ItemName</td>
-                            <td>@item.ItemCategory</td>
-                            <td>@item.Quantity</td>
-                            <td>@item.RetailPrice.ToString("C")</td>
-                            <td>@item.Manufacturer</td>
-                            <td>@item.Origin</td>
-                            <td>@item.ExpireDate.ToShortDateString()</td>
-                            <td>@GetItemStatus(item)</td>
-                            <td>
-                                <button class="btn btn-outline-primary btn-sm" @onclick="() => EditItem(item)">Edit</button>
-                                <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteItem(item)">Delete</button>
-                            </td>
-                        </tr>
+                <tr class="@ItemViewModel.GetRowClass(item)">
+                    <td>@item.ItemID</td>
+                    <td>@item.ItemName</td>
+                    <td>@item.ItemCategory</td>
+                    <td>@item.Quantity</td>
+                    <td>@item.RetailPrice.ToString("C")</td>
+                    <td>@item.WholesalePrice.ToString("C")</td>
+                    <td>@item.Manufacturer</td>
+                    <td>@item.Origin</td>
+                    <td>@item.ExpireDate.ToShortDateString()</td>
+                    <td>@ItemViewModel.GetItemStatus(item)</td>
+                    <td>
+                        <button class="btn btn-outline-primary btn-sm" @onclick="() => EditItem(item)">Edit</button>
+                        <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteItem(item)">Delete</button>
+                    </td>
+                </tr>
             }
-            </tbody>
-        </table>
+        </tbody>
+    </table>
 
-        <button class="btn btn-success mb-3" @onclick="OpenAddItemDialog">
-            <i class="fas fa-plus"></i> Add New Item
-        </button>
+    <button class="btn btn-success mb-3" @onclick="OpenAddItemDialog">
+        <i class="fas fa-plus"></i> Add New Item
+    </button>
 
     @if (_isDialogVisible)
     {
-                <NativeDialog @ref="_dialogRef"
-                              Title="@_dialogTitle"
-                              OnClose="HandleDialogClose">
+        <NativeDialog @ref="_dialogRef"
+                      Title="@_dialogTitle"
+                      OnClose="HandleDialogClose">
             @_currentDialogContent
-                </NativeDialog>
+        </NativeDialog>
     }
 }
 
@@ -74,70 +77,9 @@ else
     protected override async Task OnInitializedAsync()
     {
         Logger.LogInformation("Loading inventory page");
-        await LoadItems();
+        await ItemViewModel.LoadItems();
     }
 
-    private async Task LoadItems()
-    {
-        try
-        {
-            _items = await DatabaseService.GetItemsAsync();
-            CheckInventoryStatus();
-            StateHasChanged();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError("Failed to load inventory items", ex);
-        }
-    }
-
-    private void CheckInventoryStatus()
-    {
-        foreach (var item in _items)
-        {
-            // Check expiration
-            if (item.ExpireDate <= DateTime.Today)
-            {
-                Logger.LogWarning($"Item {item.ItemName} (ID: {item.ItemID}) has expired on {item.ExpireDate.ToShortDateString()}");
-            }
-            else if (item.ExpireDate <= DateTime.Today.AddDays(30))
-            {
-                Logger.LogWarning($"Item {item.ItemName} (ID: {item.ItemID}) will expire soon on {item.ExpireDate.ToShortDateString()}");
-            }
-
-            // Check quantity
-            if (item.Quantity == 0)
-            {
-                Logger.LogWarning($"Item {item.ItemName} (ID: {item.ItemID}) is out of stock");
-            }
-            else if (item.Quantity <= 5)
-            {
-                Logger.LogWarning($"Item {item.ItemName} (ID: {item.ItemID}) is running low (Quantity: {item.Quantity})");
-            }
-        }
-    }
-
-    private string GetRowClass(Items item)
-    {
-        if (item.ExpireDate <= DateTime.Today)
-            return "table-danger";
-        if (item.Quantity == 0)
-            return "table-warning";
-        if (item.Quantity <= 5)
-            return "table-info";
-        return "";
-    }
-
-    private string GetItemStatus(Items item)
-    {
-        if (item.ExpireDate <= DateTime.Today)
-            return "Expired";
-        if (item.Quantity == 0)
-            return "Out of Stock";
-        if (item.Quantity <= 5)
-            return "Low Stock";
-        return "Available";
-    }
 
     private void OpenAddItemDialog()
     {
@@ -199,7 +141,8 @@ else
                     await DatabaseService.SaveItemAsync(_currentItem);
                     Logger.LogInformation($"Successfully saved item: {_currentItem.ItemName} (ID: {_currentItem.ItemID})");
                 }
-                await LoadItems();
+                await ItemViewModel.LoadItems();
+            
             }
             catch (Exception ex)
             {

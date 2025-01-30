@@ -6,6 +6,7 @@
         <div class="col-md-6 mb-3">
             <label class="form-label">Item Name</label>
             <InputText class="form-control" @bind-Value="Item.ItemName" />
+            <ValidationMessage For="@(() => Item.ItemName)" />
         </div>
 
         <div class="col-md-6 mb-3">
@@ -21,11 +22,17 @@
         <div class="col-md-6 mb-3">
             <label class="form-label">Quantity</label>
             <InputNumber class="form-control" @bind-Value="Item.Quantity" />
+            <ValidationMessage For="@(() => Item.Quantity)" />
         </div>
 
         <div class="col-md-6 mb-3">
-            <label class="form-label">Price</label>
+            <label class="form-label">Retail Price</label>
             <InputNumber class="form-control" @bind-Value="Item.RetailPrice" />
+        </div>
+
+        <div class="col-md-6 mb-3"
+            <label class="form-label">Whole Sale</label>"
+            <InputNumber class="form-control" @bind-Value="Item.WholesalePrice" />
         </div>
 
         <div class="col-md-6 mb-3">
@@ -42,9 +49,8 @@
             <label class="form-label">Expiration Date</label>
             <InputDate class="form-control" @bind-Value="Item.ExpireDate" />
         </div>
+     
     </div>
-
-    <button type="submit" class="btn btn-success">Save</button>
 </EditForm>
 
 @code {
@@ -52,6 +58,10 @@
 
     private void HandleValidSubmit()
     {
-        // Submit logic
+        SaveItem(Item);
+    }
+
+    private void SaveItem(Items item)
+    {
     }
 }

@@ -1,5 +1,6 @@
 using SQLite;
 using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace Inventory.Models
 {
@@ -11,6 +12,8 @@ namespace Inventory.Models
         public int ItemID { get; set; }
 
         [Column("Name")]
+        [Unique]
+        [Required(ErrorMessage = "Item Name is required")]
         public string ItemName { get; set; }
 
         [Column("Origin")]
@@ -20,6 +23,7 @@ namespace Inventory.Models
         public string Manufacturer { get; set; }
 
         [Column("Quantity")]
+        [Required(ErrorMessage = "Quantity is required")]
         public int Quantity { get; set; }
 
         [Column("Retail")]
@@ -30,17 +34,12 @@ namespace Inventory.Models
         [Column("ExpireDate")]
         public DateTime ExpireDate { get; set; }
 
-       
-
-
-
         [Column("ItemCategory")]
         public int ItemCategoryInt
         {
             get => (int)ItemCategory;
             set => ItemCategory = (Category)value;
         }
-
 
         [Ignore]
         public Category ItemCategory { get; set; }

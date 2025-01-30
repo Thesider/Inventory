@@ -28,15 +28,20 @@ namespace Inventory.Data
                             .Where(i => i.ItemID == id)
                             .FirstOrDefaultAsync();
         }
-        public Task<int> SaveItemAsync(Items item)
+        public async Task<int> SaveItemAsync(Items item)
         {
+            if (!await IsItemNameUniqueAsync(item.ItemName, item.ItemID))
+            {
+                return -1; 
+            }
+
             if (item.ItemID != 0)
             {
-                return _database.UpdateAsync(item);
+                return await _database.UpdateAsync(item);
             }
             else
             {
-                return _database.InsertAsync(item);
+                return await _database.InsertAsync(item);
             }
         }
         public Task<int> AddItemAsync(Items item)
@@ -53,6 +58,12 @@ namespace Inventory.Data
         {
             return _database.DeleteAsync(item);
         }
-       
+        private async Task<bool> IsItemNameUniqueAsync(string itemName, int itemId = 0)
+        {
+            var existingItem = await _database.Table<Items>()
+                                              .Where(i => i.ItemName == itemName && i.ItemID != itemId)
+                                              .FirstOrDefaultAsync();
+            return existingItem == null;
+        }
     }
 }
