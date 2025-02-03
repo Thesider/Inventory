@@ -1,0 +1,40 @@
+﻿@using Inventory.Models
+@using System.Globalization
+
+<div class="card shadow-lg p-4">
+    <h3 class="text-center mb-4">Monthly Sales Report</h3>
+
+    @if (MonthlySalesReport == null || MonthlySalesReport.Count == 0)
+    {
+            <div class="alert alert-info text-center">No monthly sales report available.</div>
+    }
+    else
+    {
+            <div class="table-responsive">
+                <table class="table table-hover table-bordered text-center align-middle">
+                    <thead class="table-dark text-light">
+                        <tr>
+                            <th>Month</th>
+                            <th>Total Quantity Sold</th>
+                            <th>Total Revenue</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var report in MonthlySalesReport)
+                    {
+                                <tr>
+                                    <td class="fw-bold">@report.Month.ToString("MMMM yyyy", CultureInfo.InvariantCulture)</td>
+                                    <td class="fw-bold">@report.TotalQuantitySold</td>
+                            <td class="fw-bold text-success">@report.TotalRevenue.ToString("C0", new CultureInfo("vi-VN"))</td>
+                                </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public List<MonthlySalesReport> MonthlySalesReport { get; set; } = new();
+}

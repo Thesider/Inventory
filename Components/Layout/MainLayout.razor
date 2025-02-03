@@ -1,4 +1,7 @@
 ﻿@inherits LayoutComponentBase
+@inject IAppLogger Logger
+
+<PageTitle>Inventory</PageTitle>
 
 <div class="page">
     <div class="sidebar">
@@ -6,10 +9,52 @@
     </div>
 
     <main>
-     
+        <div class="top-row px-4">
+            <a href="#" @onclick:preventDefault @onclick="ShowBugReportForm">Report Bug</a>
+        </div>
 
-        <article class="content px-4">
+        <div class="content px-4">
             @Body
-        </article>
+        </div>
     </main>
 </div>
+
+@if (_isDialogVisible)
+{
+    <NativeDialog @ref="bugReportDialog" Title="Report a Bug" OnClose="HandleDialogClose">
+        <BugReportForm OnSubmitSuccess="HideBugReportForm" OnCancel="HideBugReportForm" />
+    </NativeDialog>
+}
+
+@code {
+    private NativeDialog? bugReportDialog;
+    private bool _isDialogVisible = false;
+
+    private void ShowBugReportForm()
+    {
+        _isDialogVisible = true;
+        bugReportDialog?.Show();
+    }
+
+    private async Task HideBugReportForm()
+    {
+        _isDialogVisible = false;
+        if (bugReportDialog != null)
+        {
+            await bugReportDialog.Close();
+        }
+    }
+
+    private async Task HandleDialogClose(bool confirmed)
+    {
+        _isDialogVisible = false;
+        if (confirmed)
+        {
+            Logger.LogInformation("Bug report submitted successfully.");
+        }
+        else
+        {
+            Logger.LogInformation("Bug report submission canceled.");
+        }
+    }
+}

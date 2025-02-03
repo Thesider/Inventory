@@ -10,6 +10,7 @@ namespace Inventory.Models
         public int ItemID { get; set; }
 
         [Column("Name")]
+
         public string? ItemName { get; set; }
 
         [Column("Origin")]

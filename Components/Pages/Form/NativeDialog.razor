@@ -1,13 +1,11 @@
 ﻿@inherits ComponentBase
 
-<div class="modal @(_isVisible ? "show d-block" : "")" tabindex="-1" role="dialog" style="z-index: 1050;">
+<div class="modal @(_isVisible ? "show d-block" : "")" tabindex="-1" role="dialog" style="z-index: 1050;" @onclick="HandleBackdropClick">
     <div class="modal-dialog" role="document">
-        <div class="modal-content">
+        <div class="modal-content" @onclick:stopPropagation="true">
             <div class="modal-header">
                 <h5 class="modal-title">@Title</h5>
-                <button type="button" class="close" @onclick="Close" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+                <button type="button" class="btn-close" @onclick="Close" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 @ChildContent
@@ -15,7 +13,7 @@
             <div class="modal-footer">
                 @if (ShowCancelButton)
                 {
-                    <button type="button" class="btn btn-secondary" @onclick="Close">Cancel</button>
+                        <button type="button" class="btn btn-secondary" @onclick="Close">Cancel</button>
                 }
                 <button type="button" class="btn btn-primary" @onclick="Confirm">@ConfirmButtonText</button>
             </div>
@@ -50,5 +48,10 @@
         _isVisible = false;
         await OnClose.InvokeAsync(true);
         StateHasChanged();
+    }
+
+    private void HandleBackdropClick()
+    {
+        Close();
     }
 }

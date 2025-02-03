@@ -25,10 +25,6 @@ namespace Inventory.Models
         public double TotalAmount { get; set; }
         [Ignore]
         public Unit SaleUnit { get; set; }
-        public enum Unit
-        {
-            Pharmacy, Clinic, Personal, Other
-        }
 
 
     }

@@ -18,10 +18,13 @@
         void LogWarning(string message);
         void LogError(string message, Exception? exception = null);
         void LogCritical(string message, Exception? exception = null);
+        Task SaveBugLog(BugLog bugLog);
 
         // Specific to MAUI platform logging
         void LogToFile(string message);
         Task<string[]> GetLogFiles();
         Task<string> GetLatestLogs(int numberOfLines = 100);
+        Task<BugLog[]> GetBugList();
     }
+
 }

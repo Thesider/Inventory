@@ -1,0 +1,61 @@
+﻿@using Inventory.Models
+
+<div class="card shadow-lg p-4">
+    <h3 class="text-center mb-4">Inventory Summary</h3>
+
+    <!-- Search Filter -->
+    <div class="mb-3">
+        <input type="text" class="form-control" placeholder="Search Category..." @bind="SearchTerm" />
+    </div>
+
+    @if (FilteredInventorySummary == null || !FilteredInventorySummary.Any())
+    {
+            <div class="alert alert-info text-center">No inventory data available.</div>
+    }
+    else
+    {
+            <div class="table-responsive">
+                <table class="table table-hover table-striped text-center align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Category</th>
+                            <th>Total Items</th>
+                            <th>In Stock</th>
+                            <th>Low Stock</th>
+                            <th>Expired</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var category in FilteredInventorySummary)
+                    {
+                                <tr>
+                                    <td>@category.Key</td>
+                                    <td>@category.Value.TotalItems</td>
+                                    <td class="fw-bold text-success">@category.Value.InStock</td>
+                                    <td class="fw-bold @(category.Value.LowStock > 0 ? "text-warning" : "text-muted")">
+                                @category.Value.LowStock
+                                    </td>
+                                    <td class="fw-bold @(category.Value.Expired > 0 ? "text-danger" : "text-muted")">
+                                @category.Value.Expired
+                                    </td>
+                                </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public Dictionary<string, InventorySummary> InventorySummary { get; set; } = new();
+
+    private string SearchTerm { get; set; } = "";
+
+    private Dictionary<string, InventorySummary> FilteredInventorySummary =>
+        string.IsNullOrWhiteSpace(SearchTerm)
+        ? InventorySummary
+        : InventorySummary
+            .Where(i => i.Key.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase))
+            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+}

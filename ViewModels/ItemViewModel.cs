@@ -5,10 +5,12 @@ using System.Collections.ObjectModel;
 
 namespace Inventory.ViewModels;
 
-public class ItemViewModel
+public class ItemViewModel : IItemViewModel
 {
     private readonly DatabaseService _db;
     private readonly IAppLogger _logger;
+    public event Action? OnItemsChanged;
+
 
     public ObservableCollection<Items> Items { get; } = new();
     private List<Items> _allItems = new();
@@ -19,7 +21,27 @@ public class ItemViewModel
         _db = db ?? throw new ArgumentNullException(nameof(db));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
+    private void UpdateCollections(Items item)
+    {
+        var existingItem = Items.FirstOrDefault(i => i.ItemID == item.ItemID);
+        if (existingItem != null)
+        {
+            var index = Items.IndexOf(existingItem);
+            Items[index] = item;
 
+            var filteredIndex = FilteredItems.FindIndex(i => i.ItemID == item.ItemID);
+            if (filteredIndex != -1)
+            {
+                FilteredItems[filteredIndex] = item;
+            }
+
+            var allItemsIndex = _allItems.FindIndex(i => i.ItemID == item.ItemID);
+            if (allItemsIndex != -1)
+            {
+                _allItems[allItemsIndex] = item;
+            }
+        }
+    }
     public async Task LoadItems()
     {
         try
@@ -34,6 +56,8 @@ public class ItemViewModel
                 Items.Add(item);
             }
             _logger.LogInformation($"Finished loading items. Total items loaded: {_allItems.Count}");
+            OnItemsChanged?.Invoke();
+
         }
         catch (Exception ex)
         {
@@ -41,6 +65,19 @@ public class ItemViewModel
             throw;
         }
     }
+    public async Task OnItemChanged(Items item)
+    {
+        try
+        {
+            await _db.UpdateItemAsync(item);
+            _logger.LogInformation($"Updated item: {item.ItemName} (ID: {item.ItemID})");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Failed to update item: {item.ItemName}", ex);
+        }
+    }
+
 
     public async Task DeleteItem(int id)
     {
@@ -48,26 +85,79 @@ public class ItemViewModel
         if (item != null)
         {
             await _db.DeleteItemAsync(item);
+            OnItemsChanged?.Invoke();
+
         }
     }
 
-    public async Task SaveItem(Items item)
+    public async Task AddItemAsync(Items item)
     {
         try
         {
-            await _db.SaveItemAsync(new List<Items> { item });
-            if (!Items.Contains(item))
-            {
-                Items.Add(item);
-            }
-            _logger.LogInformation($"Saved item: {item.ItemName} (ID: {item.ItemID})");
+            await _db.AddItemAsync(item);
+            Items.Add(item);
+            FilteredItems.Add(item);
+            _logger.LogInformation($"Added item: {item.ItemName} (ID: {item.ItemID})");
+            OnItemsChanged?.Invoke();
+
         }
         catch (Exception ex)
         {
-            _logger.LogError($"Failed to save item: {item.ItemName}", ex);
+            _logger.LogError($"Failed to add item: {item.ItemName}", ex);
         }
     }
 
+    public async Task UpdateItemAsync(Items item)
+    {
+        try
+        {
+            await _db.UpdateItemAsync(item);
+            _logger.LogInformation($"Updated item: {item.ItemName} (ID: {item.ItemID})");
+            OnItemsChanged?.Invoke();
+
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Failed to update item: {item.ItemName}", ex);
+        }
+    }
+
+
+    public async Task DeleteItemAsync(Items item)
+    {
+        try
+        {
+            await _db.DeleteItemAsync(item);
+            Items.Remove(item);
+            FilteredItems.Remove(item);
+            _logger.LogInformation($"Deleted item: {item.ItemName} (ID: {item.ItemID})");
+            OnItemsChanged?.Invoke();
+
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Failed to delete item: {item.ItemName}", ex);
+        }
+    }
+    public async Task RefreshAsync()
+    {
+        await LoadItems();
+    }
+
+    public async Task RefreshItemAsync(Items item)
+    {
+        try
+        {
+            await _db.RefreshItemAsync(item);
+            _logger.LogInformation($"Refreshed item: {item.ItemName} (ID: {item.ItemID})");
+            OnItemsChanged?.Invoke();
+
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Failed to refresh item: {item.ItemName}", ex);
+        }
+    }
 
 
     public void CheckInventoryStatus(Items item)
@@ -188,5 +278,6 @@ public class ItemViewModel
             return "table-info";
         return "";
     }
+
 
 }

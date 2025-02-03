@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.Text;
+using System.Text.Json;
 
 namespace Inventory.Logger
 {
@@ -147,6 +148,59 @@ namespace Inventory.Logger
             while (_memoryLogs.Count > MaxMemoryLogs)
             {
                 _memoryLogs.TryDequeue(out _);
+            }
+        }
+
+        public string[] GetMemoryLogs()
+        {
+            return _memoryLogs.ToArray();
+        }
+
+        public async Task SaveBugLog(BugLog bugLog)
+        {
+            try
+            {
+                var bugReportFile = Path.Combine(_logFolder, "bug_reports.json");
+                List<BugLog> bugLogs;
+
+                if (File.Exists(bugReportFile))
+                {
+                    var json = await File.ReadAllTextAsync(bugReportFile);
+                    bugLogs = JsonSerializer.Deserialize<List<BugLog>>(json) ?? new List<BugLog>();
+                }
+                else
+                {
+                    bugLogs = new List<BugLog>();
+                }
+
+                bugLogs.Add(bugLog);
+                var updatedJson = JsonSerializer.Serialize(bugLogs, new JsonSerializerOptions { WriteIndented = true });
+                await File.WriteAllTextAsync(bugReportFile, updatedJson);
+            }
+            catch (Exception ex)
+            {
+                LogError("Failed to save bug report", ex);
+            }
+        }
+
+        public async Task<BugLog[]> GetBugList()
+        {
+            try
+            {
+                var bugReportFile = Path.Combine(_logFolder, "bug_reports.json");
+
+                if (File.Exists(bugReportFile))
+                {
+                    var json = await File.ReadAllTextAsync(bugReportFile);
+                    return JsonSerializer.Deserialize<BugLog[]>(json) ?? Array.Empty<BugLog>();
+                }
+
+                return Array.Empty<BugLog>();
+            }
+            catch (Exception ex)
+            {
+                LogError("Failed to retrieve bug reports", ex);
+                return Array.Empty<BugLog>();
             }
         }
 

@@ -1,0 +1,115 @@
+﻿@inject ISaleViewModel SaleViewModel
+@using System.Globalization
+
+<div class="card shadow-lg p-4">
+    <h3 class="text-center mb-4">Sales</h3>
+
+    <EditForm Model="SaleViewModel.SaleFormModel" OnValidSubmit="HandleProcessSale">
+        <DataAnnotationsValidator />
+        <ValidationSummary class="alert alert-danger" />
+
+        <!-- Invoice Header -->
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <h5>Date: @DateTime.Now.ToString("dd MMM yyyy")</h5>
+            </div>
+            <div class="col-md-6 text-end">
+                <h5>No: #@Guid.NewGuid().ToString().Substring(0, 8)</h5>
+            </div>
+        </div>
+
+        <!-- Unit Selection -->
+        <div class="mb-3">
+            <label for="unit" class="form-label">Sell Unit</label>
+            <select id="unit" class="form-select" @bind="SaleViewModel.SaleFormModel.Unit">
+                <option value="">-- Select Unit --</option>
+                @foreach (var unit in Enum.GetValues<Unit>())
+                {
+                        <option value="@unit">@unit</option>
+                }
+            </select>
+        </div>
+
+        <!-- Items Table -->
+        <div class="table-responsive">
+            <table class="table table-bordered text-center align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 5%">#</th>
+                        <th style="width: 40%">Item</th>
+                        <th style="width: 15%">Quantity</th>
+                        <th style="width: 15%">Price</th>
+                        <th style="width: 15%">Subtotal</th>
+                        <th style="width: 10%">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (var i = 0; i < SaleViewModel.SaleFormModel.SaleItems.Count; i++)
+                    {
+                        var saleItem = SaleViewModel.SaleFormModel.SaleItems[i];
+                        var selectedItem = SaleViewModel.Items.FirstOrDefault(it => it.ItemID == saleItem.ItemId);
+                        var price = selectedItem?.RetailPrice ?? 0;
+                        var subtotal = saleItem.Quantity * price;
+
+                            <tr>
+                                <td>@(i + 1)</td>
+                                <td>
+                                    <select class="form-select" @bind="saleItem.ItemId">
+                                        <option value="0" disabled>-- Select an Item --</option>
+                                    @foreach (var it in SaleViewModel.Items.Where(it => it.Quantity > 0))
+                                    {
+                                                <option value="@it.ItemID">@it.ItemName (@it.Quantity available)</option>
+                                    }
+                                    </select>
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control text-center" @bind="saleItem.Quantity" min="1" step="1" />
+                                </td>
+                                <td>@price.ToString("C0", new CultureInfo("vi-VN"))</td>
+                                <td>@subtotal.ToString("C0", new CultureInfo("vi-VN"))</td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" @onclick="@(() => SaleViewModel.RemoveSaleItem(saleItem))">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Invoice Summary -->
+        <div class="row mt-3">
+            <div class="col-md-6">
+                <button type="button" class="btn btn-outline-secondary" @onclick="SaleViewModel.AddSaleItem">
+                    <i class="bi bi-plus-lg"></i> Add Item
+                </button>
+            </div>
+            <div class="col-md-6 text-end">
+                <h5>Total Quantity: <strong>@SaleViewModel.SaleFormModel.SaleItems.Sum(si => si.Quantity)</strong></h5>
+                <h4>Total Amount: <strong>@SaleViewModel.SaleFormModel.SaleItems.Sum(si => si.Quantity * (SaleViewModel.Items.FirstOrDefault(it => it.ItemID == si.ItemId)?.RetailPrice ?? 0)).ToString("C0", new CultureInfo("vi-VN"))</strong></h4>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="mt-4 text-end">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-cart-check"></i> Process Sale
+            </button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    [Parameter]
+    public EventCallback OnProcessSale { get; set; }
+
+    private async Task HandleProcessSale()
+    {
+        bool success = await SaleViewModel.ProcessSale();
+        if (success)
+        {
+            await OnProcessSale.InvokeAsync();
+        }
+    }
+}

@@ -3,7 +3,7 @@ using Inventory.Models;
 
 namespace Inventory.ViewModels
 {
-    public class ItemDetailViewModel
+    public class ItemDetailViewModel : IItemDetailViewModel
     {
         private readonly DatabaseService _db;
         public Items Item { get; private set; } = new();

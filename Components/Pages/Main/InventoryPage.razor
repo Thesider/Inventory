@@ -1,0 +1,239 @@
+﻿@page "/inventory"
+
+@inject DatabaseService DatabaseService
+@inject IItemViewModel ItemViewModel
+@inject IAppLogger Logger
+@using System.Globalization
+
+<div class="card shadow-lg p-4">
+    <h3 class="text-center mb-4">Inventory</h3>
+
+    <div class="row mb-3 align-items-center">
+        <!-- Refresh Button -->
+        <div class="col-md-2">
+            <button class="btn btn-primary" @onclick="HandleRefresh">
+                <i class="fas fa-sync"></i> Refresh
+            </button>
+        </div>
+
+        <!-- Search Input and Filter Column Selection -->
+        <div class="col-md-6 d-flex">
+            <input type="text" class="form-control me-2" placeholder="Search..." @bind="_filterText" @bind:event="oninput" />
+            <select class="form-select w-auto" @bind="_filterColumn">
+                <option value="Name">Name</option>
+                <option value="Category">Category</option>
+                <option value="Manufacturer">Manufacturer</option>
+                <option value="Origin">Origin</option>
+                <option value="WholesalePrice">Wholesale Price</option>
+                <option value="RetailPrice">Retail Price</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Table -->
+    @if (ItemViewModel.FilteredItems == null)
+    {
+            <div class="d-flex justify-content-center">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+    }
+    else
+    {
+            <div class="table-responsive">
+                <table class="table table-hover table-striped table-bordered text-center align-middle">
+                    <thead class="table-dark text-light">
+                        <tr>
+                        @foreach (var column in _sortableColumns)
+                        {
+                                    <th>
+                                        <div class="d-flex justify-content-between align-items-center cursor-pointer" @onclick="@(() => SortBy(column.Key))">
+                                    @column.Value
+                                            <span class="ms-1">@GetSortIcon(column.Key)</span>
+                                        </div>
+                                    </th>
+                        }
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <Virtualize Items="ItemViewModel.FilteredItems" Context="item">
+                            <tr class="@ItemViewModel.GetRowClass(item)">
+                                <td>@item.ItemID</td>
+                                <td>@item.ItemName</td>
+                                <td>@item.ItemCategory</td>
+                                <td>@item.Quantity</td>
+                                <td>@item.RetailPrice.ToString("C0", new CultureInfo("vi-VN"))</td>
+                                <td>@item.WholesalePrice.ToString("C0", new CultureInfo("vi-VN"))</td>
+                                <td>@item.Manufacturer</td>
+                                <td>@item.Origin</td>
+                                <td>@item.ExpireDate.ToShortDateString()</td>
+                                <td>@ItemViewModel.GetItemStatus(item)</td>
+                                <td>
+                                    <button class="btn btn-outline-primary btn-sm" @onclick="() => EditItem(item)">Edit</button>
+                                    <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteItem(item)">Delete</button>
+                                </td>
+                            </tr>
+                        </Virtualize>
+                    </tbody>
+                </table>
+            </div>
+    }
+
+    <div class="d-flex justify-content-center">
+        <button class="btn btn-success mt-3 col-md-4" @onclick="AddItemDialog">
+            <i class="fas fa-plus"></i> Add New Item
+        </button>
+    </div>
+
+    @if (_isDialogVisible)
+    {
+            <NativeDialog @ref="_dialogRef" Title="@_dialogTitle" OnClose="HandleDialogClose">
+            @_currentDialogContent
+            </NativeDialog>
+    }
+</div>
+
+@code {
+    private NativeDialog? _dialogRef;
+    private string _dialogTitle = "";
+    private RenderFragment? _currentDialogContent;
+    private Items? _currentItem;
+    private bool _isDialogVisible = false;
+    private string _filterText = "";
+    private string _filterColumn = "Name";
+    private string _currentSortBy = "Name";
+    private bool _ascending = true;
+
+    private readonly Dictionary<string, string> _sortableColumns = new()
+    {
+        { "id", "ID" },
+        { "name", "Name" },
+        { "category", "Category" },
+        { "quantity", "Quantity" },
+        { "retailprice", "Retail Price" },
+        { "wholesaleprice", "Wholesale Price" },
+        { "manufacturer", "Manufacturer" },
+        { "origin", "Origin" },
+        { "expiredate", "Expiration Date" },
+        { "status", "Status" }
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        Logger.LogInformation("Loading inventory page...");
+        try
+        {
+            ItemViewModel.OnItemsChanged += StateHasChanged;
+            await ItemViewModel.LoadItems();
+            StateHasChanged();
+            Logger.LogInformation("Inventory page loaded successfully.");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError("Failed to load inventory data", ex);
+        }
+    }
+
+    public void Dispose()
+    {
+        ItemViewModel.OnItemsChanged -= StateHasChanged;
+    }
+
+    private void SortBy(string column)
+    {
+        _ascending = _currentSortBy == column ? !_ascending : true;
+        _currentSortBy = column;
+        ItemViewModel.SortItems(_currentSortBy, _ascending);
+        StateHasChanged();
+    }
+
+    private string GetSortIcon(string column) => _currentSortBy == column ? (_ascending ? "↑" : "↓") : "";
+
+    private void AddItemDialog()
+    {
+        _currentItem = new Items { ItemName = string.Empty, ExpireDate = DateTime.Today };
+        ShowDialog("Add New Item", builder =>
+        {
+            builder.OpenComponent<EditItemForm>(0);
+            builder.AddAttribute(1, "Item", _currentItem);
+            builder.CloseComponent();
+        });
+    }
+
+    private void EditItem(Items item)
+    {
+        _currentItem = item;
+        ShowDialog("Edit Item", builder =>
+        {
+            builder.OpenComponent<EditItemForm>(0);
+            builder.AddAttribute(1, "Item", _currentItem);
+            builder.CloseComponent();
+        });
+    }
+
+    private void DeleteItem(Items item)
+    {
+        _currentItem = item;
+        ShowDialog("Confirm Delete", builder =>
+        {
+            builder.AddContent(0, $"Are you sure you want to delete {item.ItemName}?");
+        });
+    }
+
+    private void ShowDialog(string title, RenderFragment content)
+    {
+        _dialogTitle = title;
+        _currentDialogContent = content;
+        _isDialogVisible = true;
+        _dialogRef?.Show();
+        Logger.LogInformation($"Opening dialog: {title}");
+    }
+
+    private async Task HandleDialogClose(bool confirmed)
+    {
+        _isDialogVisible = false;
+        await InvokeAsync(StateHasChanged);
+
+        if (!confirmed || _currentItem == null) return;
+
+        try
+        {
+            if (_dialogTitle == "Confirm Delete")
+            {
+                await ItemViewModel.DeleteItemAsync(_currentItem);
+            }
+            else if (_currentItem.ItemID == 0)
+            {
+                await ItemViewModel.AddItemAsync(_currentItem);
+            }
+            else
+            {
+                await ItemViewModel.UpdateItemAsync(_currentItem);
+            }
+            await ItemViewModel.RefreshAsync();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError($"Operation failed for item: {_currentItem?.ItemName}", ex);
+        }
+    }
+
+    private async Task HandleRefresh()
+    {
+        try
+        {
+            _filterText = "";
+            _filterColumn = "Name";
+            await Task.Delay(300);
+            await ItemViewModel.RefreshAsync();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError("Failed to refresh items", ex);
+        }
+    }
+}

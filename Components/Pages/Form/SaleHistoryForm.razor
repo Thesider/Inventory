@@ -1,0 +1,68 @@
+﻿@using Inventory.Models
+@using System.Globalization
+
+<div class="card shadow-lg p-4">
+    <h3 class="text-center mb-4">Sales History</h3>
+
+    <!-- Search Filter -->
+    <div class="mb-3">
+        <input type="text" class="form-control" placeholder="Search by Item Name..." @bind="SearchTerm" />
+    </div>
+
+    @if (FilteredSalesHistory == null || !FilteredSalesHistory.Any())
+    {
+        <div class="alert alert-info text-center">No sales history available.</div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover table-striped text-center align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>#</th>
+                        <th>Item Name</th>
+                        <th>Quantity Sold</th>
+                        <th>Sale Date</th>
+                        <th>Total Amount</th>
+                        <th>Unit</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (var i = 0; i < FilteredSalesHistory.Count; i++)
+                    {
+                        var sale = FilteredSalesHistory[i];
+                        <tr>
+                            <td>@(i + 1)</td>
+                            <td>@sale.ItemName</td>
+                            <td>@sale.QuantitySold</td>
+                            <td>@sale.SaleDate.ToString("dd MMM yyyy, hh:mm tt")</td>
+                            <td>@sale.TotalAmount.ToString("C0", new CultureInfo("vi-VN"))</td>
+                            <td>@sale.SaleUnit</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Summary -->
+        <div class="row mt-3">
+            <div class="col-md-6">
+                <h5>Total Sales: <strong>@FilteredSalesHistory.Count</strong></h5>
+            </div>
+            <div class="col-md-6 text-end">
+                <h4>Total Revenue: <strong>@FilteredSalesHistory.Sum(s => s.TotalAmount).ToString("C0", new CultureInfo("vi-VN"))</strong></h4>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public List<Sales> SalesHistory { get; set; } = new();
+
+    private string SearchTerm { get; set; } = "";
+
+    private List<Sales> FilteredSalesHistory => string.IsNullOrWhiteSpace(SearchTerm)
+        ? SalesHistory
+        : SalesHistory.Where(s => s.ItemName.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase)).ToList();
+}
