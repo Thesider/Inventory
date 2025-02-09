@@ -1,12 +1,24 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+﻿
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+
+<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="">Inventory</a>
+        <picture>
+            <source srcset="images/logo.webp" type="image/webp" />
+            <img src="images/logo.png" alt="Logo" class="img-fluid" />
+        </picture>
     </div>
 </div>
 
+<a href="javascript:void(0)" class="navbar-toggler" title="Navigation menu">
+    <span class="bi bi-list"></span>
+</a>
+
 <input type="checkbox" title="Navigation menu" class="navbar-toggler" />
 
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+<div class="nav-scrollable" style="margin-top: 5px;" onclick="document.querySelector('.navbar-toggler').click()">
     <nav class="flex-column">
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
@@ -14,19 +26,48 @@
             </NavLink>
         </div>
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
+            <NavLink class="nav-link" href="Sale">
+                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Sale
             </NavLink>
         </div>
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
-            </NavLink>
-        </div>
-          <div class="nav-item px-3">
             <NavLink class="nav-link" href="inventory">
                 <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Inventory
             </NavLink>
         </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="users">
+                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> User
+            </NavLink>
+        </div>
     </nav>
 </div>
+
+<div class="nav-item login-link">
+    <AuthorizeView>
+        <Authorized>
+            <div class="user-info">
+                <span class="username">
+                    <span class="bi bi-person-circle" aria-hidden="true"></span> @context.User.Identity?.Name.ToUpper()
+                </span>
+                <button class="nav-link btn btn-link logout-btn" @onclick="Logout">
+                    <span class="bi bi-box-arrow-left" aria-hidden="true"></span> Logout
+                </button>
+            </div>
+        </Authorized>
+        <NotAuthorized>
+            <NavLink class="nav-link login-btn" href="/login">
+                <span class="bi bi-box-arrow-in-right" aria-hidden="true"></span> Login
+            </NavLink>
+        </NotAuthorized>
+    </AuthorizeView>
+</div>
+
+@code {
+    private async Task Logout()
+    {
+        var authStateProvider = (CustomAuthenticationStateProvider)AuthenticationStateProvider;
+        await authStateProvider.NotifyUserLogout();
+        NavigationManager.NavigateTo("/login");
+    }
+}

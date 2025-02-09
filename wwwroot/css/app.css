@@ -126,3 +126,70 @@ h1:focus {
     z-index: 1;
     width: 100%;
 }
+.login-link {
+    position: absolute;
+    bottom: 10px;
+    width: 100%;
+    text-align: center;
+}
+
+.user-info {
+    display: flex;
+    align-items: center; /* Ensures vertical alignment */
+    gap: 15px; /* Spacing between username and logout button */
+    justify-content: center;
+}
+
+.username {
+    font-size: 1.25rem; /* Keep username text size */
+    color: #fff;
+    display: flex;
+    align-items: center; /* Align icon with text */
+    gap: 5px; /* Space between icon and text */
+}
+
+.nav-link {
+    display: inline-flex;
+    align-items: center;
+    color: #fff;
+    text-decoration: none;
+    font-size: 1.25rem; /* Match the font size with username */
+    padding: 5px 10px;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+    .nav-link:hover {
+        color: #ccc;
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+
+.btn-link {
+    background: none;
+    border: none;
+    color: #fff;
+    text-decoration: none;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+    .btn-link:hover {
+        color: #ccc;
+    }
+
+.logout-btn {
+    padding: 8px 12px; /* Padding for better click area */
+}
+
+.bi {
+    font-size: 1.25rem; /* Keep icons consistent with text size */
+}
+
+.nav-link {
+    font-size: 1rem;
+}
+
+.username {
+    font-size: 1rem;
+}
+}

@@ -1,5 +1,5 @@
-﻿@inject ISaleViewModel SaleViewModel
-@using System.Globalization
+﻿@page "/sell-item-form"
+@inject ISaleViewModel SaleViewModel
 
 <div class="card shadow-lg p-4">
     <h3 class="text-center mb-4">Sales</h3>
@@ -14,7 +14,7 @@
                 <h5>Date: @DateTime.Now.ToString("dd MMM yyyy")</h5>
             </div>
             <div class="col-md-6 text-end">
-                <h5>No: #@Guid.NewGuid().ToString().Substring(0, 8)</h5>
+                <h5>No: #@InvoiceNumber</h5>
             </div>
         </div>
 
@@ -25,7 +25,7 @@
                 <option value="">-- Select Unit --</option>
                 @foreach (var unit in Enum.GetValues<Unit>())
                 {
-                        <option value="@unit">@unit</option>
+                    <option value="@unit">@unit</option>
                 }
             </select>
         </div>
@@ -36,11 +36,12 @@
                 <thead class="table-light">
                     <tr>
                         <th style="width: 5%">#</th>
-                        <th style="width: 40%">Item</th>
-                        <th style="width: 15%">Quantity</th>
+                        <th style="width: 30%">Item</th>
+                        <th style="width: 10%">Quantity</th>
                         <th style="width: 15%">Price</th>
+                        <th style="width: 20%">Sale Multiply</th>
                         <th style="width: 15%">Subtotal</th>
-                        <th style="width: 10%">Action</th>
+                        <th style="width: 5%">Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -49,30 +50,76 @@
                         var saleItem = SaleViewModel.SaleFormModel.SaleItems[i];
                         var selectedItem = SaleViewModel.Items.FirstOrDefault(it => it.ItemID == saleItem.ItemId);
                         var price = selectedItem?.RetailPrice ?? 0;
-                        var subtotal = saleItem.Quantity * price;
+                        var addOnTotal = saleItem.AddOns.Sum(addOn => addOn.price ?? 0);
+                        var subtotal = saleItem.Quantity * price * (saleItem.SpecialPrice ?? 1) + addOnTotal;
 
-                            <tr>
-                                <td>@(i + 1)</td>
-                                <td>
-                                    <select class="form-select" @bind="saleItem.ItemId">
-                                        <option value="0" disabled>-- Select an Item --</option>
+                        <tr>
+                            <td>@(i + 1)</td>
+                            <td>
+                                <select class="form-select" @bind="saleItem.ItemId">
+                                    <option value="0" disabled>-- Select an Item --</option>
                                     @foreach (var it in SaleViewModel.Items.Where(it => it.Quantity > 0))
                                     {
-                                                <option value="@it.ItemID">@it.ItemName (@it.Quantity available)</option>
+                                        <option value="@it.ItemID">@it.ItemName (@it.Quantity available)</option>
                                     }
-                                    </select>
-                                </td>
-                                <td>
-                                    <input type="number" class="form-control text-center" @bind="saleItem.Quantity" min="1" step="1" />
-                                </td>
-                                <td>@price.ToString("C0", new CultureInfo("vi-VN"))</td>
-                                <td>@subtotal.ToString("C0", new CultureInfo("vi-VN"))</td>
-                                <td>
-                                    <button type="button" class="btn btn-sm btn-outline-danger" @onclick="@(() => SaleViewModel.RemoveSaleItem(saleItem))">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
+                                </select>
+                            </td>
+                            <td>
+                                <input type="number" class="form-control text-center" @bind="saleItem.Quantity" min="1" step="1" />
+                            </td>
+                            <td>@price.ToString("C0", new CultureInfo("vi-VN"))</td>
+                            <td>
+                                <div class="input-group">
+                                    <input type="number" class="form-control text-center" @bind="saleItem.SpecialPrice" min="0" step="0.01" />
+                                </div>
+                            </td>
+                            <td>@subtotal.ToString("C0", new CultureInfo("vi-VN"))</td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-outline-danger" @onclick="@(() => SaleViewModel.RemoveSaleItem(saleItem))">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        @if (saleItem.AddOns.Any())
+                        {
+                            <tr>
+                                <td colspan="7">
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered text-center align-middle">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th style="width: 20%">Name</th>
+                                                    <th style="width: 20%">Price</th>
+                                                    <th style="width: 20%">Subtotal</th>
+                                                    <th style="width: 5%">Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var addOn in saleItem.AddOns)
+                                                {
+                                                    <tr>
+                                                        <td>
+                                                            <input type="text" class="form-control" @bind="addOn.name" placeholder="Optional" />
+                                                        </td>
+                                                        <td>
+                                                            <input type="number" class="form-control text-center" @bind="addOn.price" min="0" step="1000" />
+                                                        </td>
+                                                        <td>
+                                                            <span>@addOn.price?.ToString("C0", new CultureInfo("vi-VN"))</span>
+                                                        </td>
+                                                        <td>
+                                                            <button type="button" class="btn btn-sm btn-outline-danger" @onclick="@(() => RemoveAddOn(saleItem, addOn))">
+                                                                <i class="bi bi-trash"></i>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </td>
                             </tr>
+                        }
                     }
                 </tbody>
             </table>
@@ -84,10 +131,13 @@
                 <button type="button" class="btn btn-outline-secondary" @onclick="SaleViewModel.AddSaleItem">
                     <i class="bi bi-plus-lg"></i> Add Item
                 </button>
+                <button type="button" class="btn btn-outline-secondary ms-2" @onclick="AddAddOnToFirstItem">
+                    <i class="bi bi-plus-lg"></i> Add Add-On
+                </button>
             </div>
             <div class="col-md-6 text-end">
                 <h5>Total Quantity: <strong>@SaleViewModel.SaleFormModel.SaleItems.Sum(si => si.Quantity)</strong></h5>
-                <h4>Total Amount: <strong>@SaleViewModel.SaleFormModel.SaleItems.Sum(si => si.Quantity * (SaleViewModel.Items.FirstOrDefault(it => it.ItemID == si.ItemId)?.RetailPrice ?? 0)).ToString("C0", new CultureInfo("vi-VN"))</strong></h4>
+                <h4>Total Amount: <strong>@SaleViewModel.SaleFormModel.SaleItems.Sum(si => si.Quantity * (SaleViewModel.Items.FirstOrDefault(it => it.ItemID == si.ItemId)?.RetailPrice ?? 0) * (si.SpecialPrice ?? 1) + si.AddOns.Sum(addOn => addOn.price ?? 0)).ToString("C0", new CultureInfo("vi-VN"))</strong></h4>
             </div>
         </div>
 
@@ -101,6 +151,8 @@
 </div>
 
 @code {
+    private string InvoiceNumber { get; set; } = Guid.NewGuid().ToString().Substring(0, 8);
+
     [Parameter]
     public EventCallback OnProcessSale { get; set; }
 
@@ -109,7 +161,27 @@
         bool success = await SaleViewModel.ProcessSale();
         if (success)
         {
+            InvoiceNumber = Guid.NewGuid().ToString().Substring(0, 8);
             await OnProcessSale.InvokeAsync();
         }
     }
+
+    private void AddAddOn(SaleItem saleItem)
+    {
+        saleItem.AddOns.Add(new AddOn());
+    }
+
+    private void RemoveAddOn(SaleItem saleItem, AddOn addOn)
+    {
+        saleItem.AddOns.Remove(addOn);
+    }
+
+    private void AddAddOnToFirstItem()
+    {
+        if (SaleViewModel.SaleFormModel.SaleItems.Any())
+        {
+            AddAddOn(SaleViewModel.SaleFormModel.SaleItems.First());
+        }
+    }
 }
+

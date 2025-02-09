@@ -23,9 +23,16 @@ namespace Inventory.Models
 
         [Column("TotalAmount")]
         public double TotalAmount { get; set; }
-        [Ignore]
+
+        [Column("SaleUnit")]
         public Unit SaleUnit { get; set; }
 
-
+        public enum Unit
+        {
+            Clinic,
+            Pharmacy,
+            Personal,
+            Other,
+        }
     }
 }

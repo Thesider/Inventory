@@ -3,104 +3,184 @@
 @inject DatabaseService DatabaseService
 @inject IItemViewModel ItemViewModel
 @inject IAppLogger Logger
-@using System.Globalization
 
-<div class="card shadow-lg p-4">
-    <h3 class="text-center mb-4">Inventory</h3>
+<AuthorizeView Policy="AdminOrPharmacy">
+    <Authorized>
+        <div class="card shadow-lg p-4">
+            <h3 class="text-center mb-4">Inventory</h3>
 
-    <div class="row mb-3 align-items-center">
-        <!-- Refresh Button -->
-        <div class="col-md-2">
-            <button class="btn btn-primary" @onclick="HandleRefresh">
-                <i class="fas fa-sync"></i> Refresh
-            </button>
-        </div>
+            <div class="row mb-3 align-items-center">
+                <!-- Refresh Button -->
+                <div class="col-md-2">
+                    <button class="btn btn-primary" @onclick="HandleRefresh">
+                        <i class="fas fa-sync"></i> Refresh
+                    </button>
+                </div>
 
-        <!-- Search Input and Filter Column Selection -->
-        <div class="col-md-6 d-flex">
-            <input type="text" class="form-control me-2" placeholder="Search..." @bind="_filterText" @bind:event="oninput" />
-            <select class="form-select w-auto" @bind="_filterColumn">
-                <option value="Name">Name</option>
-                <option value="Category">Category</option>
-                <option value="Manufacturer">Manufacturer</option>
-                <option value="Origin">Origin</option>
-                <option value="WholesalePrice">Wholesale Price</option>
-                <option value="RetailPrice">Retail Price</option>
-            </select>
-        </div>
-    </div>
-
-    <!-- Table -->
-    @if (ItemViewModel.FilteredItems == null)
-    {
-            <div class="d-flex justify-content-center">
-                <div class="spinner-border" role="status">
-                    <span class="visually-hidden">Loading...</span>
+                <!-- Search Input and Filter Column Selection -->
+                <div class="col-md-6 d-flex">
+                    <input type="text" class="form-control me-2" placeholder="Search..." @bind-value="FilterText" @bind-value:event="oninput" />
+                    <select class="form-select w-auto" @bind-value="FilterColumn" @bind-value:event="onchange">
+                        <option value="Name">Name</option>
+                        <option value="Category">Category</option>
+                        <option value="Manufacturer">Manufacturer</option>
+                        <option value="Origin">Origin</option>
+                        <option value="WholesalePrice">Wholesale Price</option>
+                        <option value="RetailPrice">Retail Price</option>
+                    </select>
                 </div>
             </div>
-    }
-    else
-    {
-            <div class="table-responsive">
-                <table class="table table-hover table-striped table-bordered text-center align-middle">
-                    <thead class="table-dark text-light">
-                        <tr>
-                        @foreach (var column in _sortableColumns)
-                        {
+
+            <!-- Table -->
+            @if (ItemViewModel.FilteredItems == null)
+            {
+<<<<<<< Updated upstream
+                <div class="d-flex justify-content-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped table-bordered text-center align-middle">
+                        <thead class="table-dark text-light">
+                            <tr>
+                                @foreach (var column in _sortableColumns)
+                                {
                                     <th>
                                         <div class="d-flex justify-content-between align-items-center cursor-pointer" @onclick="@(() => SortBy(column.Key))">
-                                    @column.Value
+                                            @column.Value
                                             <span class="ms-1">@GetSortIcon(column.Key)</span>
                                         </div>
                                     </th>
-                        }
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <Virtualize Items="ItemViewModel.FilteredItems" Context="item">
-                            <tr class="@ItemViewModel.GetRowClass(item)">
-                                <td>@item.ItemID</td>
-                                <td>@item.ItemName</td>
-                                <td>@item.ItemCategory</td>
-                                <td>@item.Quantity</td>
-                                <td>@item.RetailPrice.ToString("C0", new CultureInfo("vi-VN"))</td>
-                                <td>@item.WholesalePrice.ToString("C0", new CultureInfo("vi-VN"))</td>
-                                <td>@item.Manufacturer</td>
-                                <td>@item.Origin</td>
-                                <td>@item.ExpireDate.ToShortDateString()</td>
-                                <td>@ItemViewModel.GetItemStatus(item)</td>
-                                <td>
-                                    <button class="btn btn-outline-primary btn-sm" @onclick="() => EditItem(item)">Edit</button>
-                                    <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteItem(item)">Delete</button>
-                                </td>
+                                }
+                                <th>Actions</th>
                             </tr>
-                        </Virtualize>
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            <Virtualize Items="ItemViewModel.FilteredItems" Context="item">
+                                <tr class="@ItemViewModel.GetRowClass(item)">
+                                    <td>@item.ItemID</td>
+                                    <td>@item.ItemName</td>
+                                    <td>@item.ItemCategory</td>
+                                    <td>@item.Quantity</td>
+                                    <td>@item.RetailPrice.ToString("C0", new CultureInfo("vi-VN"))</td>
+                                    <td>@item.WholesalePrice.ToString("C0", new CultureInfo("vi-VN"))</td>
+                                    <td>@item.Manufacturer</td>
+                                    <td>@item.Origin</td>
+                                    <td>@item.ExpireDate.ToShortDateString()</td>
+                                    <td>@ItemViewModel.GetItemStatus(item)</td>
+                                    <td>
+                                        <button class="btn btn-outline-primary btn-sm" @onclick="() => EditItem(item)">Edit</button>
+                                        <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteItem(item)">Delete</button>
+                                    </td>
+                                </tr>
+                            </Virtualize>
+                        </tbody>
+                    </table>
+                </div>
+=======
+                    <div class="d-flex justify-content-center">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+            }
+            else
+            {
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped table-bordered text-center align-middle">
+                            <thead class="table-dark text-light">
+                                <tr>
+                                @foreach (var column in _sortableColumns)
+                                {
+                                            <th>
+                                                <div class="d-flex justify-content-between align-items-center cursor-pointer" @onclick="@(() => SortBy(column.Key))">
+                                            @column.Value
+                                                    <span class="ms-1">@GetSortIcon(column.Key)</span>
+                                                </div>
+                                            </th>
+                                }
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <Virtualize Items="ItemViewModel.FilteredItems" Context="item">
+                                    <tr class="@ItemViewModel.GetRowClass(item)">
+                                        <td>@item.ItemID</td>
+                                        <td>@item.ItemName</td>
+                                        <td>@item.ItemCategory</td>
+                                        <td>@item.Quantity</td>
+                                        <td>@item.RetailPrice.ToString("C0", new CultureInfo("vi-VN"))</td>
+                                        <td>@item.WholesalePrice.ToString("C0", new CultureInfo("vi-VN"))</td>
+                                        <td>@item.Manufacturer</td>
+                                        <td>@item.Origin</td>
+                                        <td>@item.ExpireDate.ToShortDateString()</td>
+                                        <td>@ItemViewModel.GetItemStatus(item)</td>
+                                        <td>
+                                            <button class="btn btn-outline-primary btn-sm" @onclick="() => EditItem(item)">Edit</button>
+                                            <button class="btn btn-outline-danger btn-sm" @onclick="() => ConfirmDeleteItem(item)">Delete</button>
+                                        </td>
+                                    </tr>
+                                </Virtualize>
+                            </tbody>
+                        </table>
+                    </div>
+>>>>>>> Stashed changes
+            }
+
+            <div class="d-flex justify-content-center">
+                <button class="btn btn-success mt-3 col-md-4" @onclick="AddItemDialog">
+                    <i class="fas fa-plus"></i> Add New Item
+                </button>
             </div>
-    }
 
-    <div class="d-flex justify-content-center">
-        <button class="btn btn-success mt-3 col-md-4" @onclick="AddItemDialog">
-            <i class="fas fa-plus"></i> Add New Item
-        </button>
-    </div>
+            @if (_isDialogVisible)
+            {
+<<<<<<< Updated upstream
+                <NativeDialog @ref="_dialogRef" Title="@_dialogTitle" OnClose="HandleDialogClose">
+                    @_currentDialogContent
+                </NativeDialog>
+=======
+                    <NativeDialog @ref="_dialogRef" Title="@_dialogTitle" OnClose="HandleDialogClose">
+                    @_currentDialogContent
+                    </NativeDialog>
+            }
 
-    @if (_isDialogVisible)
-    {
-            <NativeDialog @ref="_dialogRef" Title="@_dialogTitle" OnClose="HandleDialogClose">
-            @_currentDialogContent
-            </NativeDialog>
-    }
-</div>
+            @if (_isDeleteDialogVisible)
+            {
+                    <NativeDialog @ref="_deleteDialogRef" Title="Confirm Delete" OnClose="HandleDeleteDialogClose">
+                        <div class="p-4">
+                            <p>Are you sure you want to delete the item <strong>@_currentItem?.ItemName</strong>?</p>
+                            <div class="d-flex justify-content-end">
+                                <button class="btn btn-secondary me-2" @onclick="CancelDelete">Cancel</button>
+                                <button class="btn btn-danger" @onclick="DeleteItemAsync">Delete</button>
+                            </div>
+                        </div>
+                    </NativeDialog>
+>>>>>>> Stashed changes
+            }
+        </div>
+    </Authorized>
+    <NotAuthorized>
+<<<<<<< Updated upstream
+        <p>You are not authorized to view this page.</p>
+=======
+             <p>You are not authorized to access this page. Please <a href="/login">login</a>.</p>
+>>>>>>> Stashed changes
+    </NotAuthorized>
+</AuthorizeView>
 
 @code {
     private NativeDialog? _dialogRef;
+    private NativeDialog? _deleteDialogRef;
     private string _dialogTitle = "";
     private RenderFragment? _currentDialogContent;
     private Items? _currentItem;
     private bool _isDialogVisible = false;
+    private bool _isDeleteDialogVisible = false;
     private string _filterText = "";
     private string _filterColumn = "Name";
     private string _currentSortBy = "Name";
@@ -108,16 +188,16 @@
 
     private readonly Dictionary<string, string> _sortableColumns = new()
     {
-        { "id", "ID" },
-        { "name", "Name" },
-        { "category", "Category" },
-        { "quantity", "Quantity" },
-        { "retailprice", "Retail Price" },
-        { "wholesaleprice", "Wholesale Price" },
-        { "manufacturer", "Manufacturer" },
-        { "origin", "Origin" },
-        { "expiredate", "Expiration Date" },
-        { "status", "Status" }
+        { "ItemID", "ID" },
+        { "ItemName", "Name" },
+        { "ItemCategory", "Category" },
+        { "Quantity", "Quantity" },
+        { "RetailPrice", "Retail Price" },
+        { "WholesalePrice", "Wholesale Price" },
+        { "Manufacturer", "Manufacturer" },
+        { "Origin", "Origin" },
+        { "ExpireDate", "Expiration Date" },
+        { "ItemStatus", "Status" }
     };
 
     protected override async Task OnInitializedAsync()
@@ -158,6 +238,7 @@
         {
             builder.OpenComponent<EditItemForm>(0);
             builder.AddAttribute(1, "Item", _currentItem);
+            builder.AddAttribute(2, "OnSave", EventCallback.Factory.Create(this, () => HandleDialogClose(true)));
             builder.CloseComponent();
         });
     }
@@ -169,17 +250,35 @@
         {
             builder.OpenComponent<EditItemForm>(0);
             builder.AddAttribute(1, "Item", _currentItem);
+            builder.AddAttribute(2, "OnSave", EventCallback.Factory.Create(this, () => HandleDialogClose(true)));
             builder.CloseComponent();
         });
     }
 
-    private void DeleteItem(Items item)
+    private void ConfirmDeleteItem(Items item)
     {
         _currentItem = item;
-        ShowDialog("Confirm Delete", builder =>
+        _isDeleteDialogVisible = true;
+        StateHasChanged();
+    }
+
+    private void CancelDelete()
+    {
+        _isDeleteDialogVisible = false;
+        _currentItem = null;
+        StateHasChanged();
+    }
+
+    private async Task DeleteItemAsync()
+    {
+        if (_currentItem != null)
         {
-            builder.AddContent(0, $"Are you sure you want to delete {item.ItemName}?");
-        });
+            await ItemViewModel.DeleteItemAsync(_currentItem);
+            _isDeleteDialogVisible = false;
+            _currentItem = null;
+            await ItemViewModel.RefreshAsync();
+            StateHasChanged();
+        }
     }
 
     private void ShowDialog(string title, RenderFragment content)
@@ -200,11 +299,7 @@
 
         try
         {
-            if (_dialogTitle == "Confirm Delete")
-            {
-                await ItemViewModel.DeleteItemAsync(_currentItem);
-            }
-            else if (_currentItem.ItemID == 0)
+            if (_currentItem.ItemID == 0)
             {
                 await ItemViewModel.AddItemAsync(_currentItem);
             }
@@ -221,6 +316,21 @@
         }
     }
 
+<<<<<<< Updated upstream
+=======
+    private void HandleDeleteDialogClose()
+    {
+        _isDeleteDialogVisible = false;
+        StateHasChanged();
+    }
+
+>>>>>>> Stashed changes
+    private void HandleFilter()
+    {
+        ItemViewModel.FilterItems(_filterText, _filterColumn);
+        StateHasChanged();
+    }
+
     private async Task HandleRefresh()
     {
         try
@@ -234,6 +344,32 @@
         catch (Exception ex)
         {
             Logger.LogError("Failed to refresh items", ex);
+        }
+    }
+
+    private string FilterText
+    {
+        get => _filterText;
+        set
+        {
+            if (_filterText != value)
+            {
+                _filterText = value;
+                HandleFilter();
+            }
+        }
+    }
+
+    private string FilterColumn
+    {
+        get => _filterColumn;
+        set
+        {
+            if (_filterColumn != value)
+            {
+                _filterColumn = value;
+                HandleFilter();
+            }
         }
     }
 }

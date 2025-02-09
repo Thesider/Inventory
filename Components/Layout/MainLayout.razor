@@ -1,11 +1,22 @@
 ﻿@inherits LayoutComponentBase
 @inject IAppLogger Logger
+@inject AuthenticationStateProvider AuthStateProvider
+@using Inventory.Components.Pages.Form
+@using System.Security.Claims
 
 <PageTitle>Inventory</PageTitle>
 
 <div class="page">
     <div class="sidebar">
         <NavMenu />
+        <div class="user-profile">
+            @if (user != null)
+            {
+                    <div class="user-info">
+                        <p>@user.Identity?.Name</p>
+                    </div>
+            }
+        </div>
     </div>
 
     <main>
@@ -21,40 +32,46 @@
 
 @if (_isDialogVisible)
 {
-    <NativeDialog @ref="bugReportDialog" Title="Report a Bug" OnClose="HandleDialogClose">
-        <BugReportForm OnSubmitSuccess="HideBugReportForm" OnCancel="HideBugReportForm" />
-    </NativeDialog>
+        <NativeDialog @ref="bugReportDialog" Title="Report a Bug" OnClose="HandleDialogClose">
+            <BugReportForm @ref="bugReportForm" OnSubmitSuccess="CloseDialog" />
+        </NativeDialog>
 }
 
 @code {
     private NativeDialog? bugReportDialog;
+    private BugReportForm? bugReportForm;
     private bool _isDialogVisible = false;
+    private ClaimsPrincipal? user;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        user = authState.User;
+    }
 
     private void ShowBugReportForm()
     {
         _isDialogVisible = true;
-        bugReportDialog?.Show();
-    }
-
-    private async Task HideBugReportForm()
-    {
-        _isDialogVisible = false;
-        if (bugReportDialog != null)
-        {
-            await bugReportDialog.Close();
-        }
+        StateHasChanged();
     }
 
     private async Task HandleDialogClose(bool confirmed)
     {
-        _isDialogVisible = false;
         if (confirmed)
         {
-            Logger.LogInformation("Bug report submitted successfully.");
+            var success = await bugReportForm!.SubmitForm();
+            if (success)
+            {
+                Logger.LogInformation("Bug report submitted successfully.");
+            }
         }
-        else
-        {
-            Logger.LogInformation("Bug report submission canceled.");
-        }
+        _isDialogVisible = false;
+        StateHasChanged();
+    }
+
+    private void CloseDialog()
+    {
+        _isDialogVisible = false;
+        StateHasChanged();
     }
 }

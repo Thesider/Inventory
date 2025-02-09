@@ -20,7 +20,7 @@ namespace Inventory
         {
             if (!_isDatabaseSeeded)
             {
-                var databaseService = new DatabaseService();
+                var databaseService = Current.Handler.MauiContext.Services.GetService<DatabaseService>();
                 var seedData = new SeedData(databaseService);
                 await databaseService.InitializeAsync();
                 await seedData.SeedDatabaseAsync();

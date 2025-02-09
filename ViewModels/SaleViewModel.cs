@@ -1,18 +1,22 @@
 ﻿using Inventory.Data;
+using Inventory.Enum;
 using Inventory.Models;
-using Inventory.ViewModels;
+using Inventory.ViewModels.Interface;
 using Microsoft.Extensions.Logging;
+using System.ComponentModel;
 
-public class SaleViewModel : ISaleViewModel
+public class SaleViewModel : ISaleViewModel, INotifyPropertyChanged
 {
     private readonly DatabaseService _databaseService;
     private readonly ILogger<SaleViewModel> _logger;
-
     public List<Items> Items { get; private set; } = new();
     public Dictionary<string, InventorySummary> InventorySummary { get; private set; } = new();
     public List<Sales> SalesHistory { get; private set; } = new();
+    public List<DailySaleReport> DailySalesReport { get; private set; } = new();
     public List<MonthlySalesReport> MonthlySalesReport { get; private set; } = new();
     public SaleFormModel SaleFormModel { get; private set; } = new SaleFormModel();
+
+    public event PropertyChangedEventHandler? PropertyChanged;
 
     public SaleViewModel(DatabaseService databaseService, ILogger<SaleViewModel> logger)
     {
@@ -26,8 +30,10 @@ public class SaleViewModel : ISaleViewModel
         var loadDataTask = LoadData();
         var loadSalesHistoryTask = LoadSalesHistory();
         var generateMonthlySalesReportTask = GenerateMonthlySalesReport();
+        var generateDailySalesReportTask = GenerateDailySalesReport();
 
         await Task.WhenAll(loadDataTask, loadSalesHistoryTask, generateMonthlySalesReportTask);
+        OnPropertyChanged(nameof(DailySalesReport));
     }
 
     private async Task LoadData()
@@ -37,7 +43,7 @@ public class SaleViewModel : ISaleViewModel
             Items = await _databaseService.GetItemsAsync();
 
             InventorySummary.Clear();
-            foreach (var category in Enum.GetValues(typeof(Items.Category)).Cast<Items.Category>())
+            foreach (var category in Enum.GetValues(typeof(Category)).Cast<Category>())
             {
                 var categoryItems = Items.Where(i => i.ItemCategory == category).ToList();
                 InventorySummary[category.ToString()] = new InventorySummary
@@ -88,13 +94,45 @@ public class SaleViewModel : ISaleViewModel
             _logger.LogError("Failed to generate monthly sales report", ex);
         }
     }
+    private async Task GenerateDailySalesReport()
+    {
+        try
+        {
+            var salesHistory = await _databaseService.GetSalesHistoryAsync();
+            DailySalesReport = salesHistory
+                .Where(s => s.SaleUnit == Unit.Pharmacy && s.SaleDate.Date == DateTime.Today)
+                .Select(s => new DailySaleReport
+                {
+                    SaleDate = s.SaleDate,
+                    ItemName = s.ItemName,
+                    Quantity = s.QuantitySold,
+                    TotalAmount = s.TotalAmount
+                })
+                .OrderByDescending(r => r.SaleDate)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Failed to generate daily sales report", ex);
+        }
+    }
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
     public async Task<bool> ProcessSale()
     {
         // Validate that there is at least one sale item
         if (!SaleFormModel.SaleItems.Any())
         {
             _logger.LogWarning("No sale items added.");
+            return false;
+        }
+
+        // Validate the unit selection
+        if (SaleFormModel.Unit == Unit.Other)
+        {
+            _logger.LogWarning("No unit selected.");
             return false;
         }
 
@@ -127,6 +165,16 @@ public class SaleViewModel : ISaleViewModel
             // Deduct the sold quantity from the selected item
             selectedItem.Quantity -= saleItem.Quantity;
 
+<<<<<<< Updated upstream
+            // Apply different pricing formulas based on the sale unit
+            double totalAmount = saleItem.Quantity * selectedItem.WholesalePrice * (saleItem.SpecialPrice ?? 1);
+
+=======
+            // Calculate the total amount including add-ons
+            double addOnTotal = saleItem.AddOns.Sum(addOn => addOn.price ?? 0);
+            double totalAmount = saleItem.Quantity * (selectedItem.WholesalePrice) * (saleItem.SpecialPrice ?? 1) + addOnTotal;
+>>>>>>> Stashed changes
+
             // Create a sale record for the sale item
             var saleRecord = new Sales
             {
@@ -134,7 +182,8 @@ public class SaleViewModel : ISaleViewModel
                 ItemName = selectedItem.ItemName,
                 QuantitySold = saleItem.Quantity,
                 SaleDate = DateTime.Now,
-                TotalAmount = saleItem.Quantity * selectedItem.RetailPrice
+                TotalAmount = totalAmount,
+                SaleUnit = SaleFormModel.Unit
             };
             saleRecords.Add(saleRecord);
 
@@ -150,7 +199,7 @@ public class SaleViewModel : ISaleViewModel
                 .Distinct()
                 .ToList();
 
-            await _databaseService.SaveItemAsync(itemsToUpdate);
+            await _databaseService.SaveItemAsync(itemsToUpdate!);
 
             // Save each sale record
             foreach (var saleRecord in saleRecords)
@@ -163,14 +212,16 @@ public class SaleViewModel : ISaleViewModel
             // Reload updated data
             var loadDataTask = LoadData();
             var loadSalesHistoryTask = LoadSalesHistory();
+            var generateDailySalesReportTask = GenerateDailySalesReport();
             var generateMonthlySalesReportTask = GenerateMonthlySalesReport();
 
-            await Task.WhenAll(loadDataTask, loadSalesHistoryTask, generateMonthlySalesReportTask);
+            await Task.WhenAll(loadDataTask, loadSalesHistoryTask, generateDailySalesReportTask, generateMonthlySalesReportTask);
 
             // Reset the sale form
             SaleFormModel = new SaleFormModel();
             SaleFormModel.SaleItems.Add(new SaleItem());
 
+            OnPropertyChanged(nameof(DailySalesReport));
             return true;
         }
         catch (Exception ex)
@@ -179,10 +230,10 @@ public class SaleViewModel : ISaleViewModel
             return false;
         }
     }
-
     public void AddSaleItem()
     {
         SaleFormModel.SaleItems.Add(new SaleItem());
+        OnPropertyChanged(nameof(SaleFormModel));
     }
 
     public void RemoveSaleItem(SaleItem saleItem)
@@ -191,14 +242,14 @@ public class SaleViewModel : ISaleViewModel
     }
 }
 
-public class SaleFormModel
-{
-    public List<SaleItem> SaleItems { get; set; } = new List<SaleItem>();
-    public Unit Unit { get; set; }
-}
+    public void UpdateAvailableItems(int selectedItemId)
+    {
+        var selectedItem = Items.FirstOrDefault(i => i.ItemID == selectedItemId);
+    }
 
-public enum Unit
-{
-    Pharmacy, Clinic, Personal, Other
-}
+    protected virtual void OnPropertyChanged(string propertyName)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
 
+}

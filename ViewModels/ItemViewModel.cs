@@ -1,6 +1,7 @@
 using Inventory.Data;
 using Inventory.Logger;
 using Inventory.Models;
+using Inventory.ViewModels.Interface;
 using System.Collections.ObjectModel;
 
 namespace Inventory.ViewModels;
@@ -188,7 +189,7 @@ public class ItemViewModel : IItemViewModel
 
             FilteredItems = sortBy.ToLower() switch
             {
-                "name" => ascending
+                "itemname" => ascending
                     ? FilteredItems.OrderBy(i => i.ItemName).ToList()
                     : FilteredItems.OrderByDescending(i => i.ItemName).ToList(),
                 "quantity" => ascending
@@ -197,7 +198,7 @@ public class ItemViewModel : IItemViewModel
                 "expiredate" => ascending
                     ? FilteredItems.OrderBy(i => i.ExpireDate).ToList()
                     : FilteredItems.OrderByDescending(i => i.ExpireDate).ToList(),
-                "id" => ascending
+                "itemid" => ascending
                     ? FilteredItems.OrderBy(i => i.ItemID).ToList()
                     : FilteredItems.OrderByDescending(i => i.ItemID).ToList(),
                 "wholesaleprice" => ascending
@@ -206,7 +207,7 @@ public class ItemViewModel : IItemViewModel
                 "retailprice" => ascending
                     ? FilteredItems.OrderBy(i => i.RetailPrice).ToList()
                     : FilteredItems.OrderByDescending(i => i.RetailPrice).ToList(),
-                "category" => ascending
+                "itemcategory" => ascending
                     ? FilteredItems.OrderBy(i => i.ItemCategory).ToList()
                     : FilteredItems.OrderByDescending(i => i.ItemCategory).ToList(),
                 "manufacturer" => ascending
@@ -215,7 +216,7 @@ public class ItemViewModel : IItemViewModel
                 "origin" => ascending
                     ? FilteredItems.OrderBy(i => i.Origin).ToList()
                     : FilteredItems.OrderByDescending(i => i.Origin).ToList(),
-                "status" => ascending
+                "itemstatus" => ascending
                     ? FilteredItems.OrderBy(i => GetItemStatus(i)).ToList()
                     : FilteredItems.OrderByDescending(i => GetItemStatus(i)).ToList(),
                 _ => FilteredItems.OrderBy(i => i.ItemName).ToList()
@@ -236,19 +237,24 @@ public class ItemViewModel : IItemViewModel
             if (string.IsNullOrWhiteSpace(filterText))
             {
                 FilteredItems = _allItems.ToList();
+                OnItemsChanged?.Invoke();
                 return;
             }
 
+            var lowerFilterText = filterText.ToLowerInvariant();
+
             FilteredItems = filterColumn.ToLower() switch
             {
-                "name" => _allItems.Where(i => i.ItemName.Contains(filterText, StringComparison.OrdinalIgnoreCase)).ToList(),
-                "wholesaleprice" => _allItems.Where(i => i.WholesalePrice.ToString().Contains(filterText)).ToList(),
-                "retailprice" => _allItems.Where(i => i.RetailPrice.ToString().Contains(filterText)).ToList(),
-                "category" => _allItems.Where(i => i.ItemCategory.ToString().Contains(filterText, StringComparison.OrdinalIgnoreCase)).ToList(),
-                "manufacturer" => _allItems.Where(i => i.Manufacturer.Contains(filterText, StringComparison.OrdinalIgnoreCase)).ToList(),
-                "origin" => _allItems.Where(i => i.Origin.Contains(filterText, StringComparison.OrdinalIgnoreCase)).ToList(),
-                _ => _allItems.Where(i => i.ItemName.Contains(filterText, StringComparison.OrdinalIgnoreCase)).ToList()
+                "name" => _allItems.AsParallel().Where(i => i.ItemName != null && i.ItemName.ToLowerInvariant().Contains(lowerFilterText)).ToList(),
+                "wholesaleprice" => _allItems.AsParallel().Where(i => i.WholesalePrice.ToString().Contains(filterText)).ToList(),
+                "retailprice" => _allItems.AsParallel().Where(i => i.RetailPrice.ToString().Contains(filterText)).ToList(),
+                "category" => _allItems.AsParallel().Where(i => i.ItemCategory.ToString().ToLowerInvariant().Contains(lowerFilterText)).ToList(),
+                "manufacturer" => _allItems.AsParallel().Where(i => i.Manufacturer != null && i.Manufacturer.ToLowerInvariant().Contains(lowerFilterText)).ToList(),
+                "origin" => _allItems.AsParallel().Where(i => i.Origin != null && i.Origin.ToLowerInvariant().Contains(lowerFilterText)).ToList(),
+                _ => _allItems.AsParallel().Where(i => i.ItemName != null && i.ItemName.ToLowerInvariant().Contains(lowerFilterText)).ToList()
             };
+
+            OnItemsChanged?.Invoke();
         }
         catch (Exception ex)
         {

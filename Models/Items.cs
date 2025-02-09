@@ -1,3 +1,4 @@
+using Inventory.Enum;
 using SQLite;
 
 namespace Inventory.Models
@@ -10,7 +11,6 @@ namespace Inventory.Models
         public int ItemID { get; set; }
 
         [Column("Name")]
-
         public string? ItemName { get; set; }
 
         [Column("Origin")]
@@ -24,6 +24,7 @@ namespace Inventory.Models
 
         [Column("Retail")]
         public double RetailPrice { get; set; }
+
         [Column("Wholesale")]
         public double WholesalePrice { get; set; }
 
@@ -36,13 +37,8 @@ namespace Inventory.Models
             get => (int)ItemCategory;
             set => ItemCategory = (Category)value;
         }
-
-
-
-
         [Ignore]
         public Category ItemCategory { get; set; }
-
 
         [Column("ItemStatus")]
         public int ItemStatusInt
@@ -50,20 +46,7 @@ namespace Inventory.Models
             get => (int)ItemStatus;
             set => ItemStatus = (Status)value;
         }
-
         [Ignore]
         public Status ItemStatus { get; set; }
-
-        public enum Category
-        {
-            Pill, Syrup, Injection, Cream, Powder, Drops, Spray, Inhaler, Other
-        }
-
-        public enum Status
-        {
-            Available, OutOfStock, Expired, RunningLow
-        }
-
-
     }
 }

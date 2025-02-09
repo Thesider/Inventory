@@ -1,3 +1,4 @@
+using Inventory.Enum;
 using Inventory.Models;
 using SQLite;
 using System.Diagnostics;
@@ -53,6 +54,10 @@ namespace Inventory.Data
                 Debug.WriteLine($"Attempting to create table 'Sales' at path: {Constants.DatabasePath}");
                 await _database.CreateTableAsync<Sales>().ConfigureAwait(false);
                 Debug.WriteLine("Table 'Sales' created successfully.");
+
+                Debug.WriteLine($"Attempting to create table 'Users' at path: {Constants.DatabasePath}");
+                await _database.CreateTableAsync<Users>().ConfigureAwait(false);
+                Debug.WriteLine("Table 'Users' created successfully.");
 
                 Debug.WriteLine("Database initialized successfully.");
             }
@@ -188,6 +193,46 @@ namespace Inventory.Data
             return _database.Table<Sales>()
                             .ToListAsync();
         }
+        public Task<List<Sales>> GetSaleByClinicAsync()
+        {
+            return _database.Table<Sales>()
+                            .Where(s => s.SaleUnit == Unit.Clinic)
+                            .ToListAsync();
+        }
+        public Task<List<Sales>> GetSaleByPharmacyAsync()
+        {
+            return _database.Table<Sales>()
+                            .Where(s => s.SaleUnit == Unit.Pharmacy)
+                            .ToListAsync();
+        }
+
+        public Task<List<Sales>> GetSaleByClinicAsync()
+        {
+            return _database.Table<Sales>()
+                            .Where(s => s.SaleUnit == Unit.Clinic)
+                            .ToListAsync();
+        }
+
+        public Task<List<Sales>> GetSaleByPharmacyAsync()
+        {
+            return _database.Table<Sales>()
+                            .Where(s => s.SaleUnit == Unit.Pharmacy)
+                            .ToListAsync();
+        }
+
+        public Task<List<Sales>> GetSaleByClinicAsync()
+        {
+            return _database.Table<Sales>()
+                            .Where(s => s.SaleUnit == Unit.Clinic)
+                            .ToListAsync();
+        }
+
+        public Task<List<Sales>> GetSaleByPharmacyAsync()
+        {
+            return _database.Table<Sales>()
+                            .Where(s => s.SaleUnit == Unit.Pharmacy)
+                            .ToListAsync();
+        }
 
         public async Task SaveSaleAsync(Sales sale)
         {
@@ -212,6 +257,98 @@ namespace Inventory.Data
         private void NotifyDataChanged()
         {
             OnDataChanged?.Invoke();
+        }
+
+        // User Section
+        public async Task<Users?> GetUserByUsernameAndPasswordAsync(string username, string password)
+        {
+            return await _database.Table<Users>()
+                                  .Where(u => u.UserName == username && u.Password == password)
+                                  .FirstOrDefaultAsync()
+                                  .ConfigureAwait(false);
+        }
+
+        public async Task AddUserAsync(Users user)
+        {
+            await _database.InsertAsync(user).ConfigureAwait(false);
+            NotifyDataChanged();
+        }
+
+        public async Task UpdateUserAsync(Users user)
+        {
+            await _database.UpdateAsync(user).ConfigureAwait(false);
+            NotifyDataChanged();
+        }
+
+        public async Task DeleteUserAsync(Users user)
+        {
+            await _database.DeleteAsync(user).ConfigureAwait(false);
+            NotifyDataChanged();
+        }
+
+        public async Task<List<Users>> SaveUsersAsync(List<Users> users)
+        {
+            await _database.InsertAllAsync(users).ConfigureAwait(false);
+            NotifyDataChanged();
+            return users;
+        }
+
+        public async Task<Users?> GetUserByIdAsync(int userId)
+        {
+            return await _database.FindAsync<Users>(userId).ConfigureAwait(false);
+        }
+
+        public async Task<Role> GetUserRoleAsync(int userId)
+        {
+            var user = await GetUserByIdAsync(userId).ConfigureAwait(false);
+            return user?.UserRole ?? Role.Clinic; // Default role if user not found
+        }
+
+        public async Task<List<Users>> GetUsersAsync()
+        {
+            return await _database.Table<Users>().ToListAsync().ConfigureAwait(false);
+        }
+
+        public async Task<List<Users>> GetUsersByRoleAsync(Role role)
+        {
+            return await _database.Table<Users>()
+                                  .Where(u => u.UserRole == role)
+                                  .ToListAsync()
+                                  .ConfigureAwait(false);
+        }
+
+        public async Task<Users?> GetUserByUsernameAsync(string username)
+        {
+            return await _database.Table<Users>()
+                                  .Where(u => u.UserName == username)
+                                  .FirstOrDefaultAsync()
+                                  .ConfigureAwait(false);
+        }
+
+        public async Task<bool> IsUsernameUniqueAsync(string username, int userId = 0)
+        {
+            var existingUser = await _database.Table<Users>()
+                                              .Where(u => u.UserName == username && u.UserID != userId)
+                                              .FirstOrDefaultAsync()
+                                              .ConfigureAwait(false);
+            return existingUser == null;
+        }
+
+        public async Task<bool> IsUserPasswordCorrectAsync(int userId, string password)
+        {
+            var user = await GetUserByIdAsync(userId).ConfigureAwait(false);
+            return user?.Password == password;
+        }
+
+        public async Task<int> UpdateUserPasswordAsync(int userId, string password)
+        {
+            var user = await GetUserByIdAsync(userId).ConfigureAwait(false);
+            if (user == null)
+            {
+                return 0;
+            }
+            user.Password = password;
+            return await _database.UpdateAsync(user).ConfigureAwait(false);
         }
     }
 }

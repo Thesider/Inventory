@@ -1,9 +1,13 @@
 ﻿@using System.Net.Http
 @using System.Net.Http.Json
+@using System.ComponentModel
+@using System.Globalization
+@using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Components.Routing
 @using Microsoft.AspNetCore.Components.Web
 @using Microsoft.AspNetCore.Components.Web.Virtualization
+@using Microsoft.Extensions.Configuration
 @using Microsoft.JSInterop
 @using Inventory
 @using Inventory.Components
@@ -11,4 +15,9 @@
 @using Inventory.Data
 @using Inventory.Logger
 @using Inventory.ViewModels
+@using Inventory.ViewModels.Interface
+@using Inventory.Service
+@using Inventory.Enum
 @using Inventory.Components.Pages.Form
+@using Inventory.Components.Pages.Form.Modal
+@using Inventory.Authentication
