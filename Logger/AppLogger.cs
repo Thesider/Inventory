@@ -8,6 +8,7 @@ namespace Inventory.Logger
     {
         private readonly string _logFolder;
         private readonly string _currentLogFile;
+        private readonly string _bugLogFile;
         private readonly ConcurrentQueue<string> _memoryLogs;
         private const int MaxMemoryLogs = 1000;
 
@@ -15,6 +16,7 @@ namespace Inventory.Logger
         {
             _logFolder = Path.Combine(FileSystem.AppDataDirectory, "Logs");
             _currentLogFile = Path.Combine(_logFolder, $"log_{DateTime.Now:yyyyMMdd}.txt");
+            _bugLogFile = Path.Combine(_logFolder, "buglog.txt");
             _memoryLogs = new ConcurrentQueue<string>();
 
             if (!Directory.Exists(_logFolder))
@@ -160,22 +162,8 @@ namespace Inventory.Logger
         {
             try
             {
-                var bugReportFile = Path.Combine(_logFolder, "bug_reports.json");
-                List<BugLog> bugLogs;
-
-                if (File.Exists(bugReportFile))
-                {
-                    var json = await File.ReadAllTextAsync(bugReportFile);
-                    bugLogs = JsonSerializer.Deserialize<List<BugLog>>(json) ?? new List<BugLog>();
-                }
-                else
-                {
-                    bugLogs = new List<BugLog>();
-                }
-
-                bugLogs.Add(bugLog);
-                var updatedJson = JsonSerializer.Serialize(bugLogs, new JsonSerializerOptions { WriteIndented = true });
-                await File.WriteAllTextAsync(bugReportFile, updatedJson);
+                var logEntry = FormatBugLogEntry(bugLog);
+                await File.AppendAllTextAsync(_bugLogFile, $"{logEntry}{Environment.NewLine}");
             }
             catch (Exception ex)
             {
@@ -183,16 +171,29 @@ namespace Inventory.Logger
             }
         }
 
+        private string FormatBugLogEntry(BugLog bugLog)
+        {
+            var sb = new StringBuilder();
+            sb.Append($"[{bugLog.DateCreated:yyyy-MM-dd HH:mm:ss.fff}] ");
+            sb.Append($"Message: {bugLog.Message}");
+            if (!string.IsNullOrEmpty(bugLog.StackTrace))
+            {
+                sb.AppendLine();
+                sb.Append("Stack Trace: ");
+                sb.Append(bugLog.StackTrace);
+            }
+            return sb.ToString();
+        }
+
         public async Task<BugLog[]> GetBugList()
         {
             try
             {
-                var bugReportFile = Path.Combine(_logFolder, "bug_reports.json");
-
-                if (File.Exists(bugReportFile))
+                if (File.Exists(_bugLogFile))
                 {
-                    var json = await File.ReadAllTextAsync(bugReportFile);
-                    return JsonSerializer.Deserialize<BugLog[]>(json) ?? Array.Empty<BugLog>();
+                    var lines = await File.ReadAllLinesAsync(_bugLogFile);
+                    var bugLogs = lines.Select(line => JsonSerializer.Deserialize<BugLog>(line)).ToArray();
+                    return bugLogs;
                 }
 
                 return Array.Empty<BugLog>();

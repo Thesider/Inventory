@@ -36,10 +36,10 @@
                 <thead class="table-light">
                     <tr>
                         <th style="width: 5%">#</th>
-                        <th style="width: 40%">Item</th>
-                        <th style="width: 15%">Quantity</th>
-                        <th style="width: 15%">Price</th>
-                        <th style="width: 15%">Subtotal</th>
+                        <th style="width: 30%">Item</th>
+                        <th style="width: 10%">Quantity</th>
+                        <th style="width: 10%">Price</th>
+                        <th style="width: 10%">Subtotal</th>
                         <th style="width: 10%">Action</th>
                     </tr>
                 </thead>
@@ -68,26 +68,90 @@
                                 <td>@price.ToString("C0", new CultureInfo("vi-VN"))</td>
                                 <td>@subtotal.ToString("C0", new CultureInfo("vi-VN"))</td>
                                 <td>
-                                    <button type="button" class="btn btn-sm btn-outline-danger" @onclick="@(() => SaleViewModel.RemoveSaleItem(saleItem))">
+                                    <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => SaleViewModel.RemoveSaleItem(saleItem)">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </td>
                             </tr>
                     }
+                    <!-- Add New Row Button -->
+                    <tr>
+                        <td colspan="6" class="text-center">
+                            <button type="button" class="btn btn-sm btn-outline-success" @onclick="SaleViewModel.AddSaleItem">
+                                <i class="bi bi-plus-lg"></i> Add New Sale Item
+                            </button>
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>
 
+        <!-- Add-On Table (Hidden by Default) -->
+        @if (showAddOnsTable)
+        {
+                <div class="table-responsive mt-4">
+                    <h5>Add-Ons</h5>
+                    <table class="table table-bordered text-center align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 5%">#</th>
+                                <th style="width: 45%">Add-On Name</th>
+                                <th style="width: 20%">Add-On Amount</th>
+                                <th style="width: 10%">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @for (var i = 0; i < SaleViewModel.SaleFormModel.SaleItems.Count; i++)
+                        {
+                            var saleItem = SaleViewModel.SaleFormModel.SaleItems[i];
+
+                                    <tr>
+                                        <td>@(i + 1)</td>
+                                        <td>
+                                            <input type="text" class="form-control" @bind="saleItem.AddOnName" placeholder="Add-On Name" />
+                                        </td>
+                                        <td>
+                                            <input type="number" class="form-control text-center" @bind="saleItem.AddOnAmount" step="0.01" placeholder="Add-On Amount" />
+                                        </td>
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => SaleViewModel.RemoveAddOn(saleItem)">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                        }
+                            <!-- Add New Row Button -->
+                            <tr>
+                                <td colspan="4" class="text-center">
+                                    <button type="button" class="btn btn-sm btn-outline-success" @onclick="SaleViewModel.AddSaleItem">
+                                        <i class="bi bi-plus-lg"></i> Add New Add-On
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+        }
+
         <!-- Invoice Summary -->
         <div class="row mt-3">
             <div class="col-md-6">
-                <button type="button" class="btn btn-outline-secondary" @onclick="SaleViewModel.AddSaleItem">
-                    <i class="bi bi-plus-lg"></i> Add Item
+                <button type="button" class="btn btn-outline-secondary ms-2" @onclick="ToggleAddOnsTable">
+                    <i class="bi bi-plus-lg"></i> @(showAddOnsTable ? "Hide Add-Ons" : "Show Add-Ons")
                 </button>
             </div>
             <div class="col-md-6 text-end">
                 <h5>Total Quantity: <strong>@SaleViewModel.SaleFormModel.SaleItems.Sum(si => si.Quantity)</strong></h5>
-                <h4>Total Amount: <strong>@SaleViewModel.SaleFormModel.SaleItems.Sum(si => si.Quantity * (SaleViewModel.Items.FirstOrDefault(it => it.ItemID == si.ItemId)?.RetailPrice ?? 0)).ToString("C0", new CultureInfo("vi-VN"))</strong></h4>
+                <h4>
+                    Total Amount: <strong>
+                        @{
+                            var itemsTotal = SaleViewModel.SaleFormModel.SaleItems.Sum(si => si.Quantity * (SaleViewModel.Items.FirstOrDefault(it => it.ItemID == si.ItemId)?.RetailPrice ?? 0));
+                            var addOnsTotal = SaleViewModel.SaleFormModel.SaleItems.Sum(si => si.AddOnAmount ?? 0);
+                            var totalAmount = itemsTotal + addOnsTotal;
+                        }
+                        @totalAmount.ToString("C0", new CultureInfo("vi-VN"))
+                    </strong>
+                </h4>
             </div>
         </div>
 
@@ -103,6 +167,13 @@
 @code {
     [Parameter]
     public EventCallback OnProcessSale { get; set; }
+
+    private bool showAddOnsTable = false;
+
+    private void ToggleAddOnsTable()
+    {
+        showAddOnsTable = !showAddOnsTable;
+    }
 
     private async Task HandleProcessSale()
     {

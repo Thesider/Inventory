@@ -53,8 +53,10 @@ namespace Inventory.Data
                 Debug.WriteLine($"Attempting to create table 'Sales' at path: {Constants.DatabasePath}");
                 await _database.CreateTableAsync<Sales>().ConfigureAwait(false);
                 Debug.WriteLine("Table 'Sales' created successfully.");
-
+                await _database.CreateTableAsync<GroupedSale>().ConfigureAwait(false);
+                await _database.CreateTableAsync<SaleItem>().ConfigureAwait(false);
                 Debug.WriteLine("Database initialized successfully.");
+
             }
             catch (SQLiteException sqlEx)
             {
@@ -192,6 +194,22 @@ namespace Inventory.Data
         public async Task SaveSaleAsync(Sales sale)
         {
             await _database.InsertAsync(sale).ConfigureAwait(false);
+        }
+
+        public async Task SaveGroupedSaleAsync(GroupedSale groupedSale)
+        {
+            await _database.RunInTransactionAsync(tran =>
+            {
+                // Insert the grouped sale first to generate SaleId
+                tran.Insert(groupedSale);
+
+                // Now assign SaleId to each SaleItem and insert
+                foreach (var saleItem in groupedSale.SaleItems)
+                {
+                    saleItem.SaleId = groupedSale.SaleId;
+                    tran.Insert(saleItem);
+                }
+            }).ConfigureAwait(false);
         }
 
         public Task<int> DeleteSaleAsync(Sales sale)

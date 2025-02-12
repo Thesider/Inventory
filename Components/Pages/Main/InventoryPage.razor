@@ -33,52 +33,52 @@
     <!-- Table -->
     @if (ItemViewModel.FilteredItems == null)
     {
-            <div class="d-flex justify-content-center">
-                <div class="spinner-border" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
+        <div class="d-flex justify-content-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
             </div>
+        </div>
     }
     else
     {
-            <div class="table-responsive">
-                <table class="table table-hover table-striped table-bordered text-center align-middle">
-                    <thead class="table-dark text-light">
-                        <tr>
+        <div class="table-responsive">
+            <table class="table table-hover table-striped table-bordered text-center align-middle">
+                <thead class="table-dark text-light">
+                    <tr>
                         @foreach (var column in _sortableColumns)
                         {
-                                    <th>
-                                        <div class="d-flex justify-content-between align-items-center cursor-pointer" @onclick="@(() => SortBy(column.Key))">
+                            <th>
+                                <div class="d-flex justify-content-between align-items-center cursor-pointer" @onclick="@(() => SortBy(column.Key))">
                                     @column.Value
-                                            <span class="ms-1">@GetSortIcon(column.Key)</span>
-                                        </div>
-                                    </th>
+                                    <span class="ms-1">@GetSortIcon(column.Key)</span>
+                                </div>
+                            </th>
                         }
-                            <th>Actions</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <Virtualize Items="ItemViewModel.FilteredItems" Context="item">
+                        <tr class="@ItemViewModel.GetRowClass(item)">
+                            <td>@item.ItemID</td>
+                            <td>@item.ItemName</td>
+                            <td>@item.ItemCategory</td>
+                            <td>@item.Quantity</td>
+                            <td>@item.RetailPrice.ToString("C0", new CultureInfo("vi-VN"))</td>
+                            <td>@item.WholesalePrice.ToString("C0", new CultureInfo("vi-VN"))</td>
+                            <td>@item.Manufacturer</td>
+                            <td>@item.Origin</td>
+                            <td>@item.ExpireDate.ToShortDateString()</td>
+                            <td>@ItemViewModel.GetItemStatus(item)</td>
+                            <td>
+                                <button class="btn btn-outline-primary btn-sm" @onclick="() => EditItem(item)">Edit</button>
+                                <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteItem(item)">Delete</button>
+                            </td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        <Virtualize Items="ItemViewModel.FilteredItems" Context="item">
-                            <tr class="@ItemViewModel.GetRowClass(item)">
-                                <td>@item.ItemID</td>
-                                <td>@item.ItemName</td>
-                                <td>@item.ItemCategory</td>
-                                <td>@item.Quantity</td>
-                                <td>@item.RetailPrice.ToString("C0", new CultureInfo("vi-VN"))</td>
-                                <td>@item.WholesalePrice.ToString("C0", new CultureInfo("vi-VN"))</td>
-                                <td>@item.Manufacturer</td>
-                                <td>@item.Origin</td>
-                                <td>@item.ExpireDate.ToShortDateString()</td>
-                                <td>@ItemViewModel.GetItemStatus(item)</td>
-                                <td>
-                                    <button class="btn btn-outline-primary btn-sm" @onclick="() => EditItem(item)">Edit</button>
-                                    <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteItem(item)">Delete</button>
-                                </td>
-                            </tr>
-                        </Virtualize>
-                    </tbody>
-                </table>
-            </div>
+                    </Virtualize>
+                </tbody>
+            </table>
+        </div>
     }
 
     <div class="d-flex justify-content-center">
@@ -89,9 +89,9 @@
 
     @if (_isDialogVisible)
     {
-            <NativeDialog @ref="_dialogRef" Title="@_dialogTitle" OnClose="HandleDialogClose">
+        <NativeDialog @ref="_dialogRef" Title="@_dialogTitle" OnClose="HandleDialogClose">
             @_currentDialogContent
-            </NativeDialog>
+        </NativeDialog>
     }
 </div>
 
@@ -127,6 +127,7 @@
         {
             ItemViewModel.OnItemsChanged += StateHasChanged;
             await ItemViewModel.LoadItems();
+            ItemViewModel.CheckAllInventoryStatus(); // Check inventory status for all items
             StateHasChanged();
             Logger.LogInformation("Inventory page loaded successfully.");
         }
@@ -213,6 +214,7 @@
                 await ItemViewModel.UpdateItemAsync(_currentItem);
             }
             await ItemViewModel.RefreshAsync();
+            ItemViewModel.CheckAllInventoryStatus();
             StateHasChanged();
         }
         catch (Exception ex)
@@ -229,6 +231,7 @@
             _filterColumn = "Name";
             await Task.Delay(300);
             await ItemViewModel.RefreshAsync();
+            ItemViewModel.CheckAllInventoryStatus();
             StateHasChanged();
         }
         catch (Exception ex)

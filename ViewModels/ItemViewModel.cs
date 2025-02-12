@@ -11,7 +11,6 @@ public class ItemViewModel : IItemViewModel
     private readonly IAppLogger _logger;
     public event Action? OnItemsChanged;
 
-
     public ObservableCollection<Items> Items { get; } = new();
     private List<Items> _allItems = new();
     public List<Items> FilteredItems { get; private set; } = new();
@@ -21,6 +20,7 @@ public class ItemViewModel : IItemViewModel
         _db = db ?? throw new ArgumentNullException(nameof(db));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
+
     private void UpdateCollections(Items item)
     {
         var existingItem = Items.FirstOrDefault(i => i.ItemID == item.ItemID);
@@ -42,6 +42,15 @@ public class ItemViewModel : IItemViewModel
             }
         }
     }
+
+    public void CheckAllInventoryStatus()
+    {
+        foreach (var item in Items)
+        {
+            CheckInventoryStatus(item);
+        }
+    }
+
     public async Task LoadItems()
     {
         try
@@ -57,7 +66,6 @@ public class ItemViewModel : IItemViewModel
             }
             _logger.LogInformation($"Finished loading items. Total items loaded: {_allItems.Count}");
             OnItemsChanged?.Invoke();
-
         }
         catch (Exception ex)
         {
@@ -65,6 +73,7 @@ public class ItemViewModel : IItemViewModel
             throw;
         }
     }
+
     public async Task OnItemChanged(Items item)
     {
         try
@@ -78,7 +87,6 @@ public class ItemViewModel : IItemViewModel
         }
     }
 
-
     public async Task DeleteItem(int id)
     {
         var item = Items.FirstOrDefault(i => i.ItemID == id);
@@ -86,7 +94,6 @@ public class ItemViewModel : IItemViewModel
         {
             await _db.DeleteItemAsync(item);
             OnItemsChanged?.Invoke();
-
         }
     }
 
@@ -99,7 +106,6 @@ public class ItemViewModel : IItemViewModel
             FilteredItems.Add(item);
             _logger.LogInformation($"Added item: {item.ItemName} (ID: {item.ItemID})");
             OnItemsChanged?.Invoke();
-
         }
         catch (Exception ex)
         {
@@ -114,14 +120,12 @@ public class ItemViewModel : IItemViewModel
             await _db.UpdateItemAsync(item);
             _logger.LogInformation($"Updated item: {item.ItemName} (ID: {item.ItemID})");
             OnItemsChanged?.Invoke();
-
         }
         catch (Exception ex)
         {
             _logger.LogError($"Failed to update item: {item.ItemName}", ex);
         }
     }
-
 
     public async Task DeleteItemAsync(Items item)
     {
@@ -132,13 +136,13 @@ public class ItemViewModel : IItemViewModel
             FilteredItems.Remove(item);
             _logger.LogInformation($"Deleted item: {item.ItemName} (ID: {item.ItemID})");
             OnItemsChanged?.Invoke();
-
         }
         catch (Exception ex)
         {
             _logger.LogError($"Failed to delete item: {item.ItemName}", ex);
         }
     }
+
     public async Task RefreshAsync()
     {
         await LoadItems();
@@ -151,14 +155,12 @@ public class ItemViewModel : IItemViewModel
             await _db.RefreshItemAsync(item);
             _logger.LogInformation($"Refreshed item: {item.ItemName} (ID: {item.ItemID})");
             OnItemsChanged?.Invoke();
-
         }
         catch (Exception ex)
         {
             _logger.LogError($"Failed to refresh item: {item.ItemName}", ex);
         }
     }
-
 
     public void CheckInventoryStatus(Items item)
     {
@@ -175,11 +177,12 @@ public class ItemViewModel : IItemViewModel
         {
             _logger.LogWarning($"Item {item.ItemName} (ID: {item.ItemID}) is out of stock.");
         }
-        else if (item.Quantity <= 5)
+        else if (item.Quantity <= item.CriticalAmmount)
         {
             _logger.LogWarning($"Item {item.ItemName} (ID: {item.ItemID}) is running low.");
         }
     }
+
     public void SortItems(string sortBy, bool ascending)
     {
         try
@@ -227,6 +230,7 @@ public class ItemViewModel : IItemViewModel
             throw;
         }
     }
+
     public void FilterItems(string filterText, string filterColumn)
     {
         try
@@ -263,7 +267,7 @@ public class ItemViewModel : IItemViewModel
             return "Expired";
         if (item.Quantity == 0)
             return "Out of Stock";
-        if (item.Quantity <= 5)
+        if (item.Quantity <= item.CriticalAmmount)
             return "Low Stock";
         return "Available";
     }
@@ -274,10 +278,8 @@ public class ItemViewModel : IItemViewModel
             return "table-danger";
         if (item.Quantity == 0)
             return "table-warning";
-        if (item.Quantity <= 5)
+        if (item.Quantity <= item.CriticalAmmount)
             return "table-info";
         return "";
     }
-
-
 }

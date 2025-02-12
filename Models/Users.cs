@@ -1,4 +1,7 @@
-﻿namespace Inventory.Models
+﻿
+using Inventory.Enums;
+
+namespace Inventory.Models
 {
     public class Users
     {
@@ -7,7 +10,7 @@
         public required string Password { get; set; }
         public required string Name { get; set; }
 
-        public enum Role { Admin, Pharmacy, Clinic }
+
         public Role UserRole { get; set; }
 
 

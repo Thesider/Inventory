@@ -1,3 +1,4 @@
+using Inventory.Enums;
 using SQLite;
 
 namespace Inventory.Models
@@ -37,6 +38,8 @@ namespace Inventory.Models
             set => ItemCategory = (Category)value;
         }
 
+        [Column("CriticalAmmount")]
+        public int CriticalAmmount { get; set; } = 10;
 
 
 
@@ -54,15 +57,6 @@ namespace Inventory.Models
         [Ignore]
         public Status ItemStatus { get; set; }
 
-        public enum Category
-        {
-            Pill, Syrup, Injection, Cream, Powder, Drops, Spray, Inhaler, Other
-        }
-
-        public enum Status
-        {
-            Available, OutOfStock, Expired, RunningLow
-        }
 
 
     }

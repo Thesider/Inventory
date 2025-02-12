@@ -1,4 +1,5 @@
 ﻿using Inventory.Data;
+using Inventory.Enums;
 using Inventory.Models;
 using Inventory.ViewModels;
 using Microsoft.Extensions.Logging;
@@ -11,6 +12,7 @@ public class SaleViewModel : ISaleViewModel
     public List<Items> Items { get; private set; } = new();
     public Dictionary<string, InventorySummary> InventorySummary { get; private set; } = new();
     public List<Sales> SalesHistory { get; private set; } = new();
+    public List<DailySaleReport> DailySaleReport { get; private set; } = new();
     public List<MonthlySalesReport> MonthlySalesReport { get; private set; } = new();
     public SaleFormModel SaleFormModel { get; private set; } = new SaleFormModel();
 
@@ -25,9 +27,10 @@ public class SaleViewModel : ISaleViewModel
         _logger.LogInformation("Loading sale data");
         var loadDataTask = LoadData();
         var loadSalesHistoryTask = LoadSalesHistory();
+        var generateDailySaleReportTask = GenerateDailySaleReport();
         var generateMonthlySalesReportTask = GenerateMonthlySalesReport();
 
-        await Task.WhenAll(loadDataTask, loadSalesHistoryTask, generateMonthlySalesReportTask);
+        await Task.WhenAll(loadDataTask, loadSalesHistoryTask, generateDailySaleReportTask, generateMonthlySalesReportTask);
     }
 
     private async Task LoadData()
@@ -37,7 +40,7 @@ public class SaleViewModel : ISaleViewModel
             Items = await _databaseService.GetItemsAsync();
 
             InventorySummary.Clear();
-            foreach (var category in Enum.GetValues(typeof(Items.Category)).Cast<Items.Category>())
+            foreach (var category in Enum.GetValues(typeof(Category)).Cast<Category>())
             {
                 var categoryItems = Items.Where(i => i.ItemCategory == category).ToList();
                 InventorySummary[category.ToString()] = new InventorySummary
@@ -66,6 +69,46 @@ public class SaleViewModel : ISaleViewModel
             _logger.LogError("Failed to load sales history", ex);
         }
     }
+    private async Task GenerateDailySaleReport()
+    {
+        try
+        {
+            var salesHistory = await _databaseService.GetSalesHistoryAsync();
+
+            // Filter sales to only include those from the Pharmacy unit
+            var pharmacySalesHistory = salesHistory.Where(s => s.SaleUnit == Unit.Pharmacy);
+
+            // Group by date and then by transaction
+            DailySaleReport = pharmacySalesHistory
+                .GroupBy(s => s.SaleDate.Date)
+                .Select(dateGroup => new DailySaleReport
+                {
+                    Date = dateGroup.Key,
+                    Revenue = dateGroup.Sum(s => s.TotalAmount + (s.AddOnAmount ?? 0)),
+                    SaleItems = dateGroup
+                        .Select(sale => new SaleItemDetail
+                        {
+                            ItemName = sale.ItemName,
+                            Quantity = sale.QuantitySold,
+                            Amount = sale.TotalAmount,
+                            AddOnName = sale.AddOnName,
+                            AddOnAmount = sale.AddOnAmount ?? 0
+                        })
+                        .ToList()
+                })
+                .OrderByDescending(r => r.Date)
+                .ToList();
+
+            _logger.LogInformation("Daily sales report generated successfully.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Failed to generate daily sales report", ex);
+        }
+    }
+
+
+
 
     private async Task GenerateMonthlySalesReport()
     {
@@ -82,6 +125,7 @@ public class SaleViewModel : ISaleViewModel
                 })
                 .OrderByDescending(r => r.Month)
                 .ToList();
+            _logger.LogInformation("Monthly sales report generated successfully.");
         }
         catch (Exception ex)
         {
@@ -89,16 +133,15 @@ public class SaleViewModel : ISaleViewModel
         }
     }
 
+
     public async Task<bool> ProcessSale()
     {
-        // Validate that there is at least one sale item
         if (!SaleFormModel.SaleItems.Any())
         {
             _logger.LogWarning("No sale items added.");
             return false;
         }
 
-        // Validate each sale item entry
         foreach (var saleItem in SaleFormModel.SaleItems)
         {
             if (saleItem.ItemId == 0 || saleItem.Quantity <= 0)
@@ -108,42 +151,58 @@ public class SaleViewModel : ISaleViewModel
             }
         }
 
-        // Prepare to process each sale item
-        var saleRecords = new List<Sales>();
-        foreach (var saleItem in SaleFormModel.SaleItems)
+        var groupedSale = new GroupedSale
         {
-            var selectedItem = Items.FirstOrDefault(i => i.ItemID == saleItem.ItemId);
-            if (selectedItem == null)
-            {
-                _logger.LogWarning($"Selected item with ID {saleItem.ItemId} not found.");
-                return false;
-            }
-            if (selectedItem.Quantity < saleItem.Quantity)
-            {
-                _logger.LogWarning($"Insufficient stock for item {selectedItem.ItemName}. Requested: {saleItem.Quantity}, Available: {selectedItem.Quantity}");
-                return false;
-            }
-
-            // Deduct the sold quantity from the selected item
-            selectedItem.Quantity -= saleItem.Quantity;
-
-            // Create a sale record for the sale item
-            var saleRecord = new Sales
-            {
-                ItemID = selectedItem.ItemID,
-                ItemName = selectedItem.ItemName,
-                QuantitySold = saleItem.Quantity,
-                SaleDate = DateTime.Now,
-                TotalAmount = saleItem.Quantity * selectedItem.RetailPrice
-            };
-            saleRecords.Add(saleRecord);
-
-            _logger.LogInformation($"Prepared sale for {saleItem.Quantity} unit(s) of {selectedItem.ItemName}.");
-        }
+            SaleDate = DateTime.Now,
+            SaleItems = new List<SaleItem>(),
+            TotalAmount = 0
+        };
 
         try
         {
-            // Save updated items
+            foreach (var saleItem in SaleFormModel.SaleItems)
+            {
+                var selectedItem = Items.FirstOrDefault(i => i.ItemID == saleItem.ItemId);
+                if (selectedItem == null)
+                {
+                    _logger.LogWarning($"Selected item with ID {saleItem.ItemId} not found.");
+                    return false;
+                }
+                if (selectedItem.Quantity < saleItem.Quantity)
+                {
+                    _logger.LogWarning($"Insufficient stock for item {selectedItem.ItemName}. Requested: {saleItem.Quantity}, Available: {selectedItem.Quantity}");
+                    return false;
+                }
+
+                selectedItem.Quantity -= saleItem.Quantity;
+
+                var totalAmount = saleItem.Quantity * selectedItem.RetailPrice;
+                groupedSale.TotalAmount += totalAmount;
+
+                groupedSale.SaleItems.Add(new SaleItem
+                {
+                    ItemId = saleItem.ItemId,
+                    Quantity = saleItem.Quantity,
+                    AddOnName = saleItem.AddOnName,
+                    AddOnAmount = saleItem.AddOnAmount
+                });
+
+                var saleRecord = new Sales
+                {
+                    ItemName = selectedItem.ItemName,
+                    QuantitySold = saleItem.Quantity,
+                    SaleDate = DateTime.Now,
+                    TotalAmount = totalAmount,
+                    AddOnName = saleItem.AddOnName,
+                    AddOnAmount = saleItem.AddOnAmount,
+                    SaleUnit = SaleFormModel.Unit // Ensure the SaleUnit is set correctly
+                };
+
+                await _databaseService.SaveSaleAsync(saleRecord);
+
+                _logger.LogInformation($"Prepared sale for {saleItem.Quantity} unit(s) of {selectedItem.ItemName}.");
+            }
+
             var itemsToUpdate = SaleFormModel.SaleItems
                 .Select(si => Items.FirstOrDefault(i => i.ItemID == si.ItemId))
                 .Where(item => item != null)
@@ -152,22 +211,12 @@ public class SaleViewModel : ISaleViewModel
 
             await _databaseService.SaveItemAsync(itemsToUpdate);
 
-            // Save each sale record
-            foreach (var saleRecord in saleRecords)
-            {
-                await _databaseService.SaveSaleAsync(saleRecord);
-            }
+            await _databaseService.SaveGroupedSaleAsync(groupedSale);
 
             _logger.LogInformation("Successfully processed multi-item sale.");
 
-            // Reload updated data
-            var loadDataTask = LoadData();
-            var loadSalesHistoryTask = LoadSalesHistory();
-            var generateMonthlySalesReportTask = GenerateMonthlySalesReport();
+            await LoadSaleData();
 
-            await Task.WhenAll(loadDataTask, loadSalesHistoryTask, generateMonthlySalesReportTask);
-
-            // Reset the sale form
             SaleFormModel = new SaleFormModel();
             SaleFormModel.SaleItems.Add(new SaleItem());
 
@@ -180,6 +229,11 @@ public class SaleViewModel : ISaleViewModel
         }
     }
 
+
+
+
+
+
     public void AddSaleItem()
     {
         SaleFormModel.SaleItems.Add(new SaleItem());
@@ -189,16 +243,16 @@ public class SaleViewModel : ISaleViewModel
     {
         SaleFormModel.SaleItems.Remove(saleItem);
     }
-}
+    public void AddAddOn(SaleItem saleItem, string addOnName, double addOnAmount)
+    {
+        saleItem.AddOnName = addOnName;
+        saleItem.AddOnAmount = addOnAmount;
+    }
 
-public class SaleFormModel
-{
-    public List<SaleItem> SaleItems { get; set; } = new List<SaleItem>();
-    public Unit Unit { get; set; }
-}
+    public void RemoveAddOn(SaleItem saleItem)
+    {
+        saleItem.AddOnName = null;
+        saleItem.AddOnAmount = null;
+    }
 
-public enum Unit
-{
-    Pharmacy, Clinic, Personal, Other
 }
-

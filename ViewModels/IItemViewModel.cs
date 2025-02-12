@@ -19,8 +19,11 @@ namespace Inventory.ViewModels
         Task RefreshItemAsync(Items item);
         void CheckInventoryStatus(Items item);
         void SortItems(string sortBy, bool ascending);
+        void CheckAllInventoryStatus();
+
         void FilterItems(string filterText, string filterColumn);
         string GetItemStatus(Items item);
+
         string GetRowClass(Items item);
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Inventory.Data;
+using Inventory.Enums;
 using Inventory.Models;
 
 namespace Inventory.ViewModels
@@ -28,15 +29,15 @@ namespace Inventory.ViewModels
             // Update status based on quantity
             if (Item.Quantity <= 1)
             {
-                Item.ItemStatus = Items.Status.OutOfStock;
+                Item.ItemStatus = Status.OutOfStock;
             }
             else if (Item.Quantity <= 5)
             {
-                Item.ItemStatus = Items.Status.RunningLow;
+                Item.ItemStatus = Status.RunningLow;
             }
             else
             {
-                Item.ItemStatus = Items.Status.Available;
+                Item.ItemStatus = Status.Available;
             }
 
             if (Item.ItemID == 0)

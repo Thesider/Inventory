@@ -1,0 +1,79 @@
+﻿@using System.Globalization
+<div class="card shadow-lg p-4">
+    <h3 class="text-center mb-4">Daily Sales Report</h3>
+    @if (DailySaleReport == null || !DailySaleReport.Any())
+    {
+        <div class="alert alert-info text-center">No daily sales report available.</div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date</th>
+                        <th>Sale Details</th>
+                        <th>Total Revenue</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var report in DailySaleReport)
+                    {
+                        <tr>
+                            <td class="align-middle">@report.Date.ToString("dd MMM yyyy")</td>
+                            <td>
+                                <table class="table table-sm mb-0">
+                                    <thead class="table-secondary">
+                                        <tr>
+                                            <th>Item Name</th>
+                                            <th>Quantity</th>
+                                            <th>Amount</th>
+                                            <th>Add-Ons</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var item in report.SaleItems)
+                                        {
+                                            <tr>
+                                                <td>@item.ItemName</td>
+                                                <td>@item.Quantity</td>
+                                                <td>@item.Amount.ToString("C0", new CultureInfo("vi-VN"))</td>
+                                                <td>
+                                                    @if (item.AddOnAmount > 0)
+                                                    {
+                                                        <span>
+                                                            @(string.IsNullOrEmpty(item.AddOnName) ? "Additional Charge" : item.AddOnName):
+                                                            @item.AddOnAmount.ToString("C0", new CultureInfo("vi-VN"))
+                                                        </span>
+                                                    }
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </td>
+                            <td class="align-middle text-end fw-bold">
+                                @report.Revenue.ToString("C0", new CultureInfo("vi-VN"))
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Summary Section -->
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <h5>Total Transactions: <strong>@DailySaleReport.Count</strong></h5>
+            </div>
+            <div class="col-md-6 text-end">
+                <h5>Total Revenue: <strong>@DailySaleReport.Sum(r => r.Revenue).ToString("C0", new CultureInfo("vi-VN"))</strong></h5>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public List<DailySaleReport> DailySaleReport { get; set; } = new();
+}
