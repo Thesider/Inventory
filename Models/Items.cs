@@ -22,6 +22,8 @@ namespace Inventory.Models
 
         [Column("Quantity")]
         public int Quantity { get; set; }
+        [Column("PurchasePrice")]
+        public double PurchasePrice { get; set; }
 
         [Column("Retail")]
         public double RetailPrice { get; set; }

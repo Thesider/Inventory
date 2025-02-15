@@ -1,0 +1,165 @@
+﻿@page "/service"
+@inject NavigationManager Navigation
+@inject IServiceViewModel ServiceViewModel
+@inject IAppLogger Logger
+
+<h3 class="mb-4">Services</h3>
+
+@if (ServiceViewModel.Services == null)
+{
+    <div class="d-flex justify-content-center my-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else
+{
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-auto">
+                    <button class="btn btn-outline-primary" @onclick="HandleRefresh">Refresh</button>
+                </div>
+                <div class="col-md-4">
+                    <input type="text" class="form-control" placeholder="Search by Service Name..." @bind="SearchTerm" />
+                </div>
+            </div>
+            <div class="mb-3">
+                <button class="btn btn-primary" @onclick="ShowAddServiceModal">Add New Service</button>
+            </div>
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Service Name</th>
+                        <th>Service Price</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var service in FilteredServices)
+                    {
+                        <tr>
+                            <td>@service.ServiceName</td>
+                            <td>@service.ServicePrice</td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-outline-secondary me-2" @onclick="() => EditService(service)">Edit</button>
+                                <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteService(service.ServiceId)">Delete</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+<EditForm Model="@CurrentService" OnValidSubmit="HandleValidSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    @if (IsModalVisible)
+    {
+        <!-- Modal Backdrop -->
+        <div class="modal-backdrop fade show"></div>
+
+        <!-- Modal -->
+        <div class="modal fade show d-block" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">@ModalTitle</h5>
+                        <button type="button" class="btn-close" aria-label="Close" @onclick="CloseModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="serviceName" class="form-label">Service Name</label>
+                            <InputText id="serviceName" class="form-control" @bind-Value="CurrentService.ServiceName" />
+                        </div>
+                        <div class="mb-3">
+                            <label for="servicePrice" class="form-label">Service Price</label>
+                            <InputNumber id="servicePrice" class="form-control" @bind-Value="CurrentService.ServicePrice" />
+                        </div>
+                        <div class="mb-3">
+                            <label for="quantity" class="form-label">Quantity</label>
+                            <InputNumber id="quantity" class="form-control" @bind-Value="CurrentService.Quantity" />
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CloseModal">Close</button>
+                        <button type="submit" class="btn btn-primary">Save changes</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</EditForm>
+
+@code {
+    private Services CurrentService = new();
+    private bool IsModalVisible = false;
+    private string ModalTitle = "Add Service";
+    private string SearchTerm { get; set; } = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ServiceViewModel.LoadServices();
+    }
+
+    private void ShowAddServiceModal()
+    {
+        CurrentService = new Services();
+        ModalTitle = "Add Service";
+        IsModalVisible = true;
+    }
+
+    private void EditService(Services service)
+    {
+        CurrentService = new Services
+            {
+                ServiceId = service.ServiceId,
+                ServiceName = service.ServiceName,
+                ServicePrice = service.ServicePrice,
+                Quantity = service.Quantity
+            };
+        ModalTitle = "Edit Service";
+        IsModalVisible = true;
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        if (CurrentService.ServiceId == 0)
+        {
+            await ServiceViewModel.AddService(CurrentService);
+            Logger.LogInformation("Service added successfully.");
+        }
+        else
+        {
+            await ServiceViewModel.UpdateService(CurrentService);
+            Logger.LogInformation("Service updated successfully.");
+        }
+        IsModalVisible = false;
+        await ServiceViewModel.LoadServices();
+    }
+
+    private async Task DeleteService(int serviceId)
+    {
+        await ServiceViewModel.DeleteService(serviceId);
+        Logger.LogInformation("Service deleted successfully.");
+        await ServiceViewModel.LoadServices();
+    }
+
+    private void CloseModal()
+    {
+        IsModalVisible = false;
+    }
+
+    private async Task HandleRefresh()
+    {
+        await ServiceViewModel.LoadServices();
+    }
+
+    private IEnumerable<Services> FilteredServices => string.IsNullOrWhiteSpace(SearchTerm)
+        ? ServiceViewModel.Services
+        : ServiceViewModel.Services.Where(s => s.ServiceName.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase));
+}

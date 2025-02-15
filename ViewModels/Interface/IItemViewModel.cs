@@ -1,7 +1,7 @@
 ﻿using Inventory.Models;
 using System.Collections.ObjectModel;
 
-namespace Inventory.ViewModels
+namespace Inventory.ViewModels.Interface
 {
     public interface IItemViewModel
     {

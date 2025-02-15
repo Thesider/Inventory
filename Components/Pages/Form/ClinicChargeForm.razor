@@ -1,0 +1,189 @@
+﻿@inject IItemViewModel ItemViewModel
+@inject IServiceViewModel ServiceViewModel
+
+<div class="card shadow-lg p-4">
+    <h3 class="text-center mb-4">Clinic Charge Form</h3>
+
+    <EditForm Model="chargeFormModel" OnValidSubmit="HandleSubmit">
+        <DataAnnotationsValidator />
+        <ValidationSummary class="alert alert-danger" />
+
+        <!-- Items Table -->
+        <div class="table-responsive">
+            <h5>Items</h5>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th style="width: 5%">#</th>
+                        <th style="width: 40%">Item</th>
+                        <th style="width: 10%">Quantity</th>
+                        <th style="width: 5%"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (var i = 0; i < chargeFormModel.ChargeItems.Count; i++)
+                    {
+                        var chargeItem = chargeFormModel.ChargeItems[i];
+                        var selectedItem = ItemViewModel.Items.FirstOrDefault(it => it.ItemID == chargeItem.ItemId);
+                        var price = selectedItem?.RetailPrice ?? 0;
+                        var subtotal = chargeItem.Quantity * price;
+
+                        <tr>
+                            <td>@(i + 1)</td>
+                            <td>
+                                <SearchableSelect Items="@(ItemViewModel.Items.Select(it => new Items {
+                                        ItemID = it.ItemID,
+                                        ItemName = it.ItemName
+                                    }))"
+                                                  Value="@chargeItem.ItemId"
+                                                  OnChange="@(id => chargeItem.ItemId = id)" />
+                            </td>
+                            <td>
+                                <input type="number" class="form-control" @bind="chargeItem.Quantity" min="1" />
+                            </td>
+                            <td>
+                                <button type="button" class="btn btn-outline-danger btn-sm" @onclick="@(() => RemoveChargeItem(chargeItem))"><i class="bi bi-trash"></i></button>
+                            </td>
+                        </tr>
+                    }
+                    <!-- Add New Item Button -->
+                    <tr>
+                        <td colspan="6" class="text-center">
+                            <button type="button" class="btn btn-outline-success btn-sm" @onclick="AddChargeItem"><i class="bi bi-plus"></i> Add Item</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Services Table -->
+        <div class="table-responsive">
+            <h5>Services</h5>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th style="width: 5%">#</th>
+                        <th style="width: 40%">Service</th>
+                        <th style="width: 10%">Quantity</th>
+                        <th style="width: 5%"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (var i = 0; i < chargeFormModel.ChargeServices.Count; i++)
+                    {
+                        var chargeService = chargeFormModel.ChargeServices[i];
+                        var selectedService = ServiceViewModel.Services.FirstOrDefault(s => s.ServiceId == chargeService.ServiceId);
+                        var price = selectedService?.ServicePrice ?? 0;
+                        var subtotal = chargeService.Quantity * price;
+
+                        <tr>
+                            <td>@(i + 1)</td>
+                            <td>
+                                <SearchableSelect Items="@(ServiceViewModel.Services.Select(s => new Items {
+                                        ItemID = s.ServiceId,
+                                        ItemName = s.ServiceName
+                                    }))"
+                                                  Value="@chargeService.ServiceId"
+                                                  OnChange="@(id => chargeService.ServiceId = id)" />
+                            </td>
+                            <td>
+                                <input type="number" class="form-control" @bind="chargeService.Quantity" min="1" />
+                            </td>
+                            <td>
+                                <button type="button" class="btn btn-outline-danger btn-sm" @onclick="@(() => RemoveChargeService(chargeService))"><i class="bi bi-trash"></i></button>
+                            </td>
+                        </tr>
+                    }
+                    <!-- Add New Service Button -->
+                    <tr>
+                        <td colspan="6" class="text-center">
+                            <button type="button" class="btn btn-outline-success btn-sm" @onclick="AddChargeService"><i class="bi bi-plus"></i> Add Service</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- New Customer Checkbox -->
+        <div class="form-check mb-3">
+            <input type="checkbox" class="form-check-input" id="newCustomer" @bind="chargeFormModel.IsNewCustomer" />
+            <label class="form-check-label" for="newCustomer">New Customer</label>
+        </div>
+
+        <!-- Total Price Display -->
+        <div class="mb-3">
+            <label class="form-label">Total Price</label>
+            <input type="text" class="form-control" value="@totalPrice.ToString("C0", new CultureInfo("vi-VN"))" readonly />
+        </div>
+
+        <!-- Submit Button -->
+        <div class="text-end">
+            <button type="submit" class="btn btn-primary">Calculate</button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    private ChargeFormModel chargeFormModel = new ChargeFormModel();
+    private double totalPrice = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ItemViewModel.LoadItems();
+        await ServiceViewModel.LoadServices();
+        chargeFormModel.ChargeItems.Add(new ChargeItemModel());
+        chargeFormModel.ChargeServices.Add(new ChargeServiceModel());
+    }
+
+    private void CalculateTotalPrice()
+    {
+        double itemsTotal = 0;
+        foreach (var chargeItem in chargeFormModel.ChargeItems)
+        {
+            var item = ItemViewModel.Items.FirstOrDefault(i => i.ItemID == chargeItem.ItemId);
+            if (item != null)
+            {
+                itemsTotal += chargeItem.Quantity * item.RetailPrice;
+            }
+        }
+
+        double servicesTotal = 0;
+        foreach (var chargeService in chargeFormModel.ChargeServices)
+        {
+            var service = ServiceViewModel.Services.FirstOrDefault(s => s.ServiceId == chargeService.ServiceId);
+            if (service != null)
+            {
+                servicesTotal += chargeService.Quantity * service.ServicePrice;
+            }
+        }
+
+        var basePrice = itemsTotal + servicesTotal;
+        totalPrice = chargeFormModel.IsNewCustomer ? basePrice + 200000 : basePrice + 150000;
+    }
+
+    private void HandleSubmit()
+    {
+        CalculateTotalPrice();
+        // Handle form submission logic here
+    }
+
+    private void AddChargeItem()
+    {
+        chargeFormModel.ChargeItems.Add(new ChargeItemModel());
+    }
+
+    private void RemoveChargeItem(ChargeItemModel item)
+    {
+        chargeFormModel.ChargeItems.Remove(item);
+    }
+
+    private void AddChargeService()
+    {
+        chargeFormModel.ChargeServices.Add(new ChargeServiceModel());
+    }
+
+    private void RemoveChargeService(ChargeServiceModel service)
+    {
+        chargeFormModel.ChargeServices.Remove(service);
+    }
+}

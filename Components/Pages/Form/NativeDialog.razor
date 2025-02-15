@@ -10,13 +10,7 @@
             <div class="modal-body">
                 @ChildContent
             </div>
-            <div class="modal-footer">
-                @if (ShowCancelButton)
-                {
-                        <button type="button" class="btn btn-secondary" @onclick="Close">Cancel</button>
-                }
-                <button type="button" class="btn btn-primary" @onclick="Confirm">@ConfirmButtonText</button>
-            </div>
+          
         </div>
     </div>
 </div>
@@ -40,13 +34,6 @@
     {
         _isVisible = false;
         await OnClose.InvokeAsync(false);
-        StateHasChanged();
-    }
-
-    public async Task Confirm()
-    {
-        _isVisible = false;
-        await OnClose.InvokeAsync(true);
         StateHasChanged();
     }
 

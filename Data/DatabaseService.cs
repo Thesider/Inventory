@@ -55,6 +55,7 @@ namespace Inventory.Data
                 Debug.WriteLine("Table 'Sales' created successfully.");
                 await _database.CreateTableAsync<GroupedSale>().ConfigureAwait(false);
                 await _database.CreateTableAsync<SaleItem>().ConfigureAwait(false);
+                await _database.CreateTableAsync<Services>().ConfigureAwait(false);
                 Debug.WriteLine("Database initialized successfully.");
 
             }
@@ -158,6 +159,7 @@ namespace Inventory.Data
             }
         }
 
+
         public async Task RefreshItemAsync(Items item)
         {
             var existingItem = await _database.FindAsync<Items>(item.ItemID).ConfigureAwait(false);
@@ -212,6 +214,11 @@ namespace Inventory.Data
             }).ConfigureAwait(false);
         }
 
+        public Task<int> UpdateSaleAsync(Sales sale)
+        {
+            return _database.UpdateAsync(sale);
+        }
+
         public Task<int> DeleteSaleAsync(Sales sale)
         {
             return _database.DeleteAsync(sale);
@@ -230,6 +237,31 @@ namespace Inventory.Data
         private void NotifyDataChanged()
         {
             OnDataChanged?.Invoke();
+        }
+        //Service section
+        public Task<List<Services>> GetServicesAsync()
+        {
+            return _database.Table<Services>().ToListAsync();
+        }
+
+        public Task<Services> GetServiceAsync(int id)
+        {
+            return _database.Table<Services>().Where(s => s.ServiceId == id).FirstOrDefaultAsync();
+        }
+
+        public Task<int> AddServiceAsync(Services service)
+        {
+            return _database.InsertAsync(service);
+        }
+
+        public Task<int> UpdateServiceAsync(Services service)
+        {
+            return _database.UpdateAsync(service);
+        }
+
+        public Task<int> DeleteServiceAsync(int id)
+        {
+            return _database.DeleteAsync<Services>(id);
         }
     }
 }

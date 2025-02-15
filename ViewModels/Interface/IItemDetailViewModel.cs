@@ -1,6 +1,6 @@
 ﻿using Inventory.Models;
 
-namespace Inventory.ViewModels
+namespace Inventory.ViewModels.Interface
 {
     public interface IItemDetailViewModel
     {

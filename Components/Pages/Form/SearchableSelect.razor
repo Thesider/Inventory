@@ -1,0 +1,45 @@
+﻿<div class="mb-2">
+    <div class="mb-2">
+        <input type="text" class="form-control" placeholder="Search..."
+               @bind="SearchQuery" @bind:event="oninput" />
+    </div>
+
+    @if (FilteredItems.Any())
+    {
+        <div class="position-relative">
+            <ul class="list-group position-absolute w-100 bg-white border shadow-sm">
+                @foreach (var item in FilteredItems)
+                {
+                    <li class="list-group-item list-group-item-action"
+                        @onclick="() => SelectItem(item)">
+                        @item.ItemName
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public IEnumerable<Items> Items { get; set; } = Enumerable.Empty<Items>();
+
+    [Parameter]
+    public int Value { get; set; }
+
+    [Parameter]
+    public EventCallback<int> OnChange { get; set; }
+
+    private string SearchQuery { get; set; } = string.Empty;
+    private IEnumerable<Items> FilteredItems =>
+        string.IsNullOrWhiteSpace(SearchQuery)
+            ? Enumerable.Empty<Items>()  // Hide when empty
+            : Items.Where(item => item.ItemName.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase));
+
+    private async Task SelectItem(Items item)
+    {
+        SearchQuery = item.ItemName; // Fill input with selection
+        Value = item.ItemID;
+        await OnChange.InvokeAsync(Value);
+    }
+}

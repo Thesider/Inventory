@@ -1,6 +1,7 @@
 ﻿using Inventory.Data;
 using Inventory.Logger;
 using Inventory.ViewModels;
+using Inventory.ViewModels.Interface;
 using Microsoft.Extensions.Logging;
 
 namespace Inventory
@@ -22,6 +23,7 @@ namespace Inventory
             builder.Services.AddTransient<MainPage>();
             builder.Services.AddSingleton<IItemViewModel, ItemViewModel>();
             builder.Services.AddSingleton<ISaleViewModel, SaleViewModel>();
+            builder.Services.AddSingleton<IServiceViewModel, ServiceViewModel>();
             builder.Services.AddScoped<IItemDetailViewModel, ItemDetailViewModel>();
             builder.Services.AddSingleton<IAppLogger, AppLogger>();
 #if DEBUG

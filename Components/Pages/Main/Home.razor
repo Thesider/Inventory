@@ -3,84 +3,75 @@
 @inject ISaleViewModel SaleViewModel
 @inject IAppLogger Logger
 
-<h3>Home</h3>
-
+<h3 style="margin-bottom: 24px;">Home</h3>
 @if (SaleViewModel.InventorySummary == null || SaleViewModel.SaleFormModel == null)
 {
-        <div class="spinner-border" role="status"></div>
+    <div class="spinner-border" role="status"></div>
 }
 else
 {
-        <div class="row">
-            <div class="col-md-6">
-                <SellItemForm OnProcessSale="ProcessSale" />
+    <div class="row">
+        <div class="col-md-8">
+            <ul class="nav nav-tabs" id="myTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="inventory-summary-tab" data-bs-toggle="tab" data-bs-target="#inventory-summary" type="button" role="tab" aria-controls="inventory-summary" aria-selected="true">Inventory Summary</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="sale-history-tab" data-bs-toggle="tab" data-bs-target="#sale-history" type="button" role="tab" aria-controls="sale-history" aria-selected="false">Sale History</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="daily-sale-report-tab" data-bs-toggle="tab" data-bs-target="#daily-sale-report" type="button" role="tab" aria-controls="daily-sale-report" aria-selected="false">Daily Sale Report</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="monthly-sale-report-tab" data-bs-toggle="tab" data-bs-target="#monthly-sale-report" type="button" role="tab" aria-controls="monthly-sale-report" aria-selected="false">Monthly Sale Report</button>
+                </li>
+               
+            </ul>
+            <div class="tab-content" id="myTabContent">
+                <div class="tab-pane fade show active" id="inventory-summary" role="tabpanel" aria-labelledby="inventory-summary-tab">
+                    <div class="accordion-body">
+                        <InventorySummaryForm InventorySummary="SaleViewModel.InventorySummary" />
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="sale-history" role="tabpanel" aria-labelledby="sale-history-tab">
+                    <div class="accordion-body">
+                        <SaleHistoryForm SalesHistory="SaleViewModel.SalesHistory" />
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="daily-sale-report" role="tabpanel" aria-labelledby="daily-sale-report-tab">
+                    <div class="accordion-body">
+                        <DailySaleReportForm DailySaleReport="SaleViewModel.DailySaleReport" />
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="monthly-sale-report" role="tabpanel" aria-labelledby="monthly-sale-report-tab">
+                    <div class="accordion-body">
+                        <MonthlySaleReportForm MonthlySalesReport="SaleViewModel.MonthlySalesReport" />
+                    </div>
+                </div>
+               
             </div>
-            <div class="col-md-6">
-                <div class="accordion" id="accordionExample">
-                    <div class="accordion-item">
-                        <h2 class="accordion-header" id="headingOne">
-                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#inventorySummaryCollapse" aria-expanded="true" aria-controls="inventorySummaryCollapse">
-                                Inventory Summary
-                            </button>
-                        </h2>
-                        <div id="inventorySummaryCollapse" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#accordionExample">
-                            <div class="accordion-body">
-                                <InventorySummaryForm InventorySummary="SaleViewModel.InventorySummary" />
-                            </div>
-                        </div>
-                    </div>
-                    <div class="accordion-item">
-                        <h2 class="accordion-header" id="headingTwo">
-                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#saleHistoryCollapse" aria-expanded="false" aria-controls="saleHistoryCollapse">
-                                Sale History
-                            </button>
-                        </h2>
-                        <div id="saleHistoryCollapse" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#accordionExample">
-                            <div class="accordion-body">
-                                <SaleHistoryForm SalesHistory="SaleViewModel.SalesHistory" />
-                            </div>
-                        </div>
-                    </div>
-                    <div class="accordion-item">
-                        <h2 class="accordion-header" id="headingThree">
-                            <button class="accordion-button collapsed" type="button"
-                                    data-bs-toggle="collapse"
-                                    data-bs-target="#dailySaleReportCollapse"
-                                    aria-expanded="false"
-                                    aria-controls="dailySaleReportCollapse">
-                                Daily Sale Report
-                            </button>
-                        </h2>
-                        <div id="dailySaleReportCollapse" class="accordion-collapse collapse"
-                             aria-labelledby="headingThree"
-                             data-bs-parent="#accordionExample">
-                            <div class="accordion-body">
-                                <DailySaleReportForm DailySaleReport="SaleViewModel.DailySaleReport" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="accordion-item">
-                        <h2 class="accordion-header" id="headingFour">
-                            <button class="accordion-button collapsed" type="button"
-                                    data-bs-toggle="collapse"
-                                    data-bs-target="#monthlySaleReportCollapse"
-                                    aria-expanded="false"
-                                    aria-controls="monthlySaleReportCollapse">
-                                Monthly Sale Report
-                            </button>
-                        </h2>
-                        <div id="monthlySaleReportCollapse" class="accordion-collapse collapse"
-                             aria-labelledby="headingFour"
-                             data-bs-parent="#accordionExample">
-                            <div class="accordion-body">
-                                <MonthlySaleReportForm MonthlySalesReport="SaleViewModel.MonthlySalesReport" />
-                            </div>
-                        </div>
+        </div>
+        <div class="col-md-4">
+            <ul class="nav nav-tabs" id="myTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="sell-item-tab" data-bs-toggle="tab" data-bs-target="#sell-item" type="button" role="tab" aria-controls="sell-item" aria-selected="true">Sell Item</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="clinic-charge-tab" data-bs-toggle="tab" data-bs-target="#clinic-charge" type="button" role="tab" aria-controls="clinic-charge" aria-selected="false">Clinic Charge</button>
+                </li>
+            </ul>
+            <div class="tab-content" id="myTabContent">
+                <div class="tab-pane fade show active" id="sell-item" role="tabpanel" aria-labelledby="sell-item-tab">
+                    <SellItemForm OnProcessSale="ProcessSale" />
+                </div>
+                <div class="tab-pane fade" id="clinic-charge" role="tabpanel" aria-labelledby="clinic-charge-tab">
+                    <div class="accordion-body">
+                        <ClinicChargeForm />
                     </div>
                 </div>
             </div>
         </div>
+    </div>
 }
 
 @code {

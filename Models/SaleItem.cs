@@ -16,6 +16,8 @@ namespace Inventory.Models
         public string? AddOnName { get; set; }
         [Column("AddOnAmount")]
         public double? AddOnAmount { get; set; } = 0;
+        public string ItemSearchQuery { get; set; } = string.Empty;
+
     }
 
 }

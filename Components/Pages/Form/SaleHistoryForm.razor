@@ -1,5 +1,5 @@
-﻿@using Inventory.Models
-@using System.Globalization
+﻿
+@inject ISaleViewModel SaleViewModel
 
 <div class="card shadow-lg p-4">
     <h3 class="text-center mb-4">Sales History</h3>
@@ -25,6 +25,7 @@
                         <th>Sale Date</th>
                         <th>Total Amount</th>
                         <th>Unit</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -36,8 +37,15 @@
                             <td>@sale.ItemName</td>
                             <td>@sale.QuantitySold</td>
                             <td>@sale.SaleDate.ToString("dd MMM yyyy, hh:mm tt")</td>
-                            <td>@sale.TotalAmount.ToString("C0", new CultureInfo("vi-VN"))</td>
+                            <td>
+                                <input type="number" class="form-control text-center" @bind="sale.TotalAmount" step="0.01" />
+                            </td>
                             <td>@sale.SaleUnit</td>
+                            <td>
+                                <button class="btn btn-sm btn-primary" @onclick="() => UpdateSaleAmount(sale)">
+                                    Save
+                                </button>
+                            </td>
                         </tr>
                     }
                 </tbody>
@@ -65,4 +73,9 @@
     private List<Sales> FilteredSalesHistory => string.IsNullOrWhiteSpace(SearchTerm)
         ? SalesHistory
         : SalesHistory.Where(s => s.ItemName.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase)).ToList();
+
+    private async Task UpdateSaleAmount(Sales sale)
+    {
+        await SaleViewModel.UpdateSaleAmount(sale);
+    }
 }

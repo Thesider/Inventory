@@ -1,5 +1,4 @@
 ﻿@inject ISaleViewModel SaleViewModel
-@using System.Globalization
 
 <div class="card shadow-lg p-4">
     <h3 class="text-center mb-4">Sales</h3>
@@ -25,22 +24,23 @@
                 <option value="">-- Select Unit --</option>
                 @foreach (var unit in Enum.GetValues<Unit>())
                 {
-                        <option value="@unit">@unit</option>
+                    <option value="@unit">@unit</option>
                 }
             </select>
         </div>
 
         <!-- Items Table -->
         <div class="table-responsive">
+       
             <table class="table table-bordered text-center align-middle">
                 <thead class="table-light">
                     <tr>
                         <th style="width: 5%">#</th>
-                        <th style="width: 30%">Item</th>
+                        <th style="width: 35%">Item</th>
                         <th style="width: 10%">Quantity</th>
                         <th style="width: 10%">Price</th>
                         <th style="width: 10%">Subtotal</th>
-                        <th style="width: 10%">Action</th>
+                        <th style="width: 5%"></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -51,29 +51,31 @@
                         var price = selectedItem?.RetailPrice ?? 0;
                         var subtotal = saleItem.Quantity * price;
 
-                            <tr>
-                                <td>@(i + 1)</td>
-                                <td>
-                                    <select class="form-select" @bind="saleItem.ItemId">
-                                        <option value="0" disabled>-- Select an Item --</option>
-                                    @foreach (var it in SaleViewModel.Items.Where(it => it.Quantity > 0))
-                                    {
-                                                <option value="@it.ItemID">@it.ItemName (@it.Quantity available)</option>
-                                    }
-                                    </select>
-                                </td>
-                                <td>
-                                    <input type="number" class="form-control text-center" @bind="saleItem.Quantity" min="1" step="1" />
-                                </td>
-                                <td>@price.ToString("C0", new CultureInfo("vi-VN"))</td>
-                                <td>@subtotal.ToString("C0", new CultureInfo("vi-VN"))</td>
-                                <td>
-                                    <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => SaleViewModel.RemoveSaleItem(saleItem)">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
+                        <tr>
+                            <td>@(i + 1)</td>
+                            <td>
+                                <SearchableSelect Items="@(SaleViewModel.FilteredItems.Select(it => new Items {
+                                        ItemID = it.ItemID,
+                                        ItemName = it.ItemName,
+                                        Quantity = it.Quantity,
+                                        ItemCategory = it.ItemCategory
+                                    }))"
+                                                  Value="@saleItem.ItemId"
+                                                  OnChange="@(id => saleItem.ItemId = id)" />
+                            </td>
+                            <td>
+                                <input type="number" class="form-control text-center" @bind="saleItem.Quantity" min="1" step="1" />
+                            </td>
+                            <td>@price.ToString("C0", new CultureInfo("vi-VN"))</td>
+                            <td>@subtotal.ToString("C0", new CultureInfo("vi-VN"))</td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => SaleViewModel.RemoveSaleItem(saleItem)">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
                     }
+
                     <!-- Add New Row Button -->
                     <tr>
                         <td colspan="6" class="text-center">
@@ -89,48 +91,49 @@
         <!-- Add-On Table (Hidden by Default) -->
         @if (showAddOnsTable)
         {
-                <div class="table-responsive mt-4">
-                    <h5>Add-Ons</h5>
-                    <table class="table table-bordered text-center align-middle">
-                        <thead class="table-light">
-                            <tr>
-                                <th style="width: 5%">#</th>
-                                <th style="width: 45%">Add-On Name</th>
-                                <th style="width: 20%">Add-On Amount</th>
-                                <th style="width: 10%">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+            <div class="table-responsive mt-4">
+                <h5>Add-Ons</h5>
+                <table class="table table-bordered text-center align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 5%">#</th>
+                            <th style="width: 45%">Add-On Name</th>
+                            <th style="width: 20%">Add-On Amount</th>
+                            <th style="width: 10%">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
                         @for (var i = 0; i < SaleViewModel.SaleFormModel.SaleItems.Count; i++)
                         {
                             var saleItem = SaleViewModel.SaleFormModel.SaleItems[i];
 
-                                    <tr>
-                                        <td>@(i + 1)</td>
-                                        <td>
-                                            <input type="text" class="form-control" @bind="saleItem.AddOnName" placeholder="Add-On Name" />
-                                        </td>
-                                        <td>
-                                            <input type="number" class="form-control text-center" @bind="saleItem.AddOnAmount" step="0.01" placeholder="Add-On Amount" />
-                                        </td>
-                                        <td>
-                                            <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => SaleViewModel.RemoveAddOn(saleItem)">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
-                        }
-                            <!-- Add New Row Button -->
                             <tr>
-                                <td colspan="4" class="text-center">
-                                    <button type="button" class="btn btn-sm btn-outline-success" @onclick="SaleViewModel.AddSaleItem">
-                                        <i class="bi bi-plus-lg"></i> Add New Add-On
+                                <td>@(i + 1)</td>
+                                <td>
+                                    <input type="text" class="form-control" @bind="saleItem.AddOnName" placeholder="Add-On Name" />
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control text-center" @bind="saleItem.AddOnAmount" step="0.01" placeholder="Add-On Amount" />
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => SaleViewModel.RemoveAddOn(saleItem)">
+                                        <i class="bi bi-trash"></i>
                                     </button>
                                 </td>
                             </tr>
-                        </tbody>
-                    </table>
-                </div>
+                        }
+
+                        <!-- Add New Row Button -->
+                        <tr>
+                            <td colspan="4" class="text-center">
+                                <button type="button" class="btn btn-sm btn-outline-success" @onclick="SaleViewModel.AddSaleItem">
+                                    <i class="bi bi-plus-lg"></i> Add New Add-On
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         }
 
         <!-- Invoice Summary -->

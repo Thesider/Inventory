@@ -1,7 +1,7 @@
 ﻿using Inventory.Data;
 using Inventory.Enums;
 using Inventory.Models;
-using Inventory.ViewModels;
+using Inventory.ViewModels.Interface;
 using Microsoft.Extensions.Logging;
 
 public class SaleViewModel : ISaleViewModel
@@ -10,6 +10,8 @@ public class SaleViewModel : ISaleViewModel
     private readonly ILogger<SaleViewModel> _logger;
 
     public List<Items> Items { get; private set; } = new();
+    public List<Items> FilteredItems { get; private set; } = new();
+    public string SearchQuery { get; set; } = string.Empty;
     public Dictionary<string, InventorySummary> InventorySummary { get; private set; } = new();
     public List<Sales> SalesHistory { get; private set; } = new();
     public List<DailySaleReport> DailySaleReport { get; private set; } = new();
@@ -31,8 +33,8 @@ public class SaleViewModel : ISaleViewModel
         var generateMonthlySalesReportTask = GenerateMonthlySalesReport();
 
         await Task.WhenAll(loadDataTask, loadSalesHistoryTask, generateDailySaleReportTask, generateMonthlySalesReportTask);
+        FilteredItems = Items.Where(it => it.Quantity > 0).ToList();
     }
-
     private async Task LoadData()
     {
         try
@@ -46,8 +48,10 @@ public class SaleViewModel : ISaleViewModel
                 InventorySummary[category.ToString()] = new InventorySummary
                 {
                     TotalItems = categoryItems.Count,
-                    InStock = categoryItems.Count(i => i.Quantity > 0),
-                    LowStock = categoryItems.Count(i => i.Quantity > 0 && i.Quantity <= 5),
+                    InStock = categoryItems.Count(i => i.Quantity > i.CriticalAmmount),
+                    LowStock = categoryItems.Count(i => i.Quantity > 0 && i.Quantity <= i.CriticalAmmount),
+                    OutOfStock = categoryItems.Count(i => i.Quantity == 0),
+                    Expiring = categoryItems.Count(i => i.ExpireDate <= DateTime.Today.AddDays(30)),
                     Expired = categoryItems.Count(i => i.ExpireDate <= DateTime.Today)
                 };
             }
@@ -69,17 +73,15 @@ public class SaleViewModel : ISaleViewModel
             _logger.LogError("Failed to load sales history", ex);
         }
     }
+
     private async Task GenerateDailySaleReport()
     {
         try
         {
             var salesHistory = await _databaseService.GetSalesHistoryAsync();
 
-            // Filter sales to only include those from the Pharmacy unit
-            var pharmacySalesHistory = salesHistory.Where(s => s.SaleUnit == Unit.Pharmacy);
-
             // Group by date and then by transaction
-            DailySaleReport = pharmacySalesHistory
+            DailySaleReport = salesHistory
                 .GroupBy(s => s.SaleDate.Date)
                 .Select(dateGroup => new DailySaleReport
                 {
@@ -107,9 +109,6 @@ public class SaleViewModel : ISaleViewModel
         }
     }
 
-
-
-
     private async Task GenerateMonthlySalesReport()
     {
         try
@@ -132,7 +131,6 @@ public class SaleViewModel : ISaleViewModel
             _logger.LogError("Failed to generate monthly sales report", ex);
         }
     }
-
 
     public async Task<bool> ProcessSale()
     {
@@ -195,7 +193,7 @@ public class SaleViewModel : ISaleViewModel
                     TotalAmount = totalAmount,
                     AddOnName = saleItem.AddOnName,
                     AddOnAmount = saleItem.AddOnAmount,
-                    SaleUnit = SaleFormModel.Unit // Ensure the SaleUnit is set correctly
+                    SaleUnit = SaleFormModel.Unit
                 };
 
                 await _databaseService.SaveSaleAsync(saleRecord);
@@ -229,10 +227,18 @@ public class SaleViewModel : ISaleViewModel
         }
     }
 
-
-
-
-
+    public async Task UpdateSaleAmount(Sales sale)
+    {
+        try
+        {
+            await _databaseService.UpdateSaleAsync(sale);
+            _logger.LogInformation($"Updated sale amount for {sale.ItemName} to {sale.TotalAmount}.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Failed to update sale amount.", ex);
+        }
+    }
 
     public void AddSaleItem()
     {
@@ -243,6 +249,19 @@ public class SaleViewModel : ISaleViewModel
     {
         SaleFormModel.SaleItems.Remove(saleItem);
     }
+    public void SearchItems(string searchQuery)
+    {
+        SearchQuery = searchQuery?.Trim().ToLower() ?? string.Empty;
+
+        FilteredItems = string.IsNullOrWhiteSpace(SearchQuery)
+            ? Items.Where(it => it.Quantity > 0).ToList()
+            : Items.Where(it => it.Quantity > 0 &&
+                (it.ItemName.ToLower().Contains(SearchQuery) ||
+                 it.ItemCategory.ToString().ToLower().Contains(SearchQuery)))
+                .ToList();
+    }
+
+
     public void AddAddOn(SaleItem saleItem, string addOnName, double addOnAmount)
     {
         saleItem.AddOnName = addOnName;
@@ -254,5 +273,4 @@ public class SaleViewModel : ISaleViewModel
         saleItem.AddOnName = null;
         saleItem.AddOnAmount = null;
     }
-
 }

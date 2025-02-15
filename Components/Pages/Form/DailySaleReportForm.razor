@@ -1,79 +1,94 @@
-﻿@using System.Globalization
+﻿
 <div class="card shadow-lg p-4">
     <h3 class="text-center mb-4">Daily Sales Report</h3>
-    @if (DailySaleReport == null || !DailySaleReport.Any())
+
+    <!-- Date Picker -->
+    <div class="mb-3">
+        <label for="reportDate" class="form-label">Select Date 
+            <InputDate id="reportDate" class="form-control" @bind-Value="SelectedDate" />
+        </label>
+ 
+    </div>
+
+    @if (FilteredDailySaleReport == null || !FilteredDailySaleReport.Any())
     {
-        <div class="alert alert-info text-center">No daily sales report available.</div>
+            <div class="alert alert-info text-center">No sales report available for the selected date.</div>
     }
     else
     {
-        <div class="table-responsive">
-            <table class="table table-bordered">
-                <thead class="table-light">
-                    <tr>
-                        <th>Date</th>
-                        <th>Sale Details</th>
-                        <th>Total Revenue</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var report in DailySaleReport)
-                    {
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="table-light">
                         <tr>
-                            <td class="align-middle">@report.Date.ToString("dd MMM yyyy")</td>
-                            <td>
-                                <table class="table table-sm mb-0">
-                                    <thead class="table-secondary">
-                                        <tr>
-                                            <th>Item Name</th>
-                                            <th>Quantity</th>
-                                            <th>Amount</th>
-                                            <th>Add-Ons</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
+                            <th>Date</th>
+                            <th>Sale Details</th>
+                            <th>Total Revenue</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var report in FilteredDailySaleReport)
+                    {
+                                <tr>
+                                    <td class="align-middle">@report.Date.ToString("dd MMM yyyy")</td>
+                                    <td>
+                                        <table class="table table-sm mb-0">
+                                            <thead class="table-secondary">
+                                                <tr>
+                                                    <th>Item Name</th>
+                                                    <th>Quantity</th>
+                                                    <th>Amount</th>
+                                                    <th>Add-Ons</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
                                         @foreach (var item in report.SaleItems)
                                         {
-                                            <tr>
-                                                <td>@item.ItemName</td>
-                                                <td>@item.Quantity</td>
-                                                <td>@item.Amount.ToString("C0", new CultureInfo("vi-VN"))</td>
-                                                <td>
+                                                        <tr>
+                                                            <td>@item.ItemName</td>
+                                                            <td>@item.Quantity</td>
+                                                            <td>@item.Amount.ToString("C0", new CultureInfo("vi-VN"))</td>
+                                                            <td>
                                                     @if (item.AddOnAmount > 0)
                                                     {
-                                                        <span>
+                                                                        <span>
                                                             @(string.IsNullOrEmpty(item.AddOnName) ? "Additional Charge" : item.AddOnName):
                                                             @item.AddOnAmount.ToString("C0", new CultureInfo("vi-VN"))
-                                                        </span>
+                                                                        </span>
                                                     }
-                                                </td>
-                                            </tr>
+                                                            </td>
+                                                        </tr>
                                         }
-                                    </tbody>
-                                </table>
-                            </td>
-                            <td class="align-middle text-end fw-bold">
+                                            </tbody>
+                                        </table>
+                                    </td>
+                                    <td class="align-middle text-end fw-bold">
                                 @report.Revenue.ToString("C0", new CultureInfo("vi-VN"))
-                            </td>
-                        </tr>
+                                    </td>
+                                </tr>
                     }
-                </tbody>
-            </table>
-        </div>
+                    </tbody>
+                </table>
+            </div>
 
-        <!-- Summary Section -->
-        <div class="row mt-4">
-            <div class="col-md-6">
-                <h5>Total Transactions: <strong>@DailySaleReport.Count</strong></h5>
+            <!-- Summary Section -->
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <h5>Total Transactions: <strong>@FilteredDailySaleReport.Count</strong></h5>
+                </div>
+                <div class="col-md-6 text-end">
+                    <h5>Total Revenue: <strong>@FilteredDailySaleReport.Sum(r => r.Revenue).ToString("C0", new CultureInfo("vi-VN"))</strong></h5>
+                </div>
             </div>
-            <div class="col-md-6 text-end">
-                <h5>Total Revenue: <strong>@DailySaleReport.Sum(r => r.Revenue).ToString("C0", new CultureInfo("vi-VN"))</strong></h5>
-            </div>
-        </div>
     }
 </div>
 
 @code {
     [Parameter]
     public List<DailySaleReport> DailySaleReport { get; set; } = new();
+
+    private DateTime SelectedDate { get; set; } = DateTime.Today;
+
+    private List<DailySaleReport> FilteredDailySaleReport => DailySaleReport
+        .Where(r => r.Date.Date == SelectedDate.Date)
+        .ToList();
 }

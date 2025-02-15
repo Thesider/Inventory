@@ -3,10 +3,9 @@
 @inject DatabaseService DatabaseService
 @inject IItemViewModel ItemViewModel
 @inject IAppLogger Logger
-@using System.Globalization
 
 <div class="card shadow-lg p-4">
-    <h3 class="text-center mb-4">Inventory</h3>
+    <h3 class="mb-4">Inventory</h3>
 
     <div class="row mb-3 align-items-center">
         <!-- Refresh Button -->
@@ -17,8 +16,16 @@
         </div>
 
         <!-- Search Input and Filter Column Selection -->
-        <div class="col-md-6 d-flex">
-            <input type="text" class="form-control me-2" placeholder="Search..." @bind="_filterText" @bind:event="oninput" />
+        <div class="col-md-6 d-flex justify-content-center">
+            <input type="text"
+                   class="form-control me-2"
+                   placeholder="Search..."
+                   value="@_filterText"
+                   @oninput="HandleSearchInput" />
+
+
+                <!-- options -->
+
             <select class="form-select w-auto" @bind="_filterColumn">
                 <option value="Name">Name</option>
                 <option value="Category">Category</option>
@@ -26,7 +33,15 @@
                 <option value="Origin">Origin</option>
                 <option value="WholesalePrice">Wholesale Price</option>
                 <option value="RetailPrice">Retail Price</option>
+                <option value="PurchasePrice">Purchase Price</option>
             </select>
+        </div>
+
+        <!-- Add New Item Button -->
+        <div class="col-md-4 d-flex justify-content-end">
+            <button class="btn btn-success" @onclick="AddItemDialog">
+                <i class="fas fa-plus"></i> Add New Item
+            </button>
         </div>
     </div>
 
@@ -63,16 +78,22 @@
                             <td>@item.ItemID</td>
                             <td>@item.ItemName</td>
                             <td>@item.ItemCategory</td>
-                            <td>@item.Quantity</td>
+                            <td>
+                                <input type="number" class="form-control-plaintext text-center"
+                                       @bind="item.Quantity"
+                                       @bind:event="onchange"
+                                       style="margin: 0; padding: 0;" />
+                            </td>
                             <td>@item.RetailPrice.ToString("C0", new CultureInfo("vi-VN"))</td>
                             <td>@item.WholesalePrice.ToString("C0", new CultureInfo("vi-VN"))</td>
+                            <td>@item.PurchasePrice.ToString("C0", new CultureInfo("vi-VN"))</td>
                             <td>@item.Manufacturer</td>
                             <td>@item.Origin</td>
                             <td>@item.ExpireDate.ToShortDateString()</td>
                             <td>@ItemViewModel.GetItemStatus(item)</td>
                             <td>
-                                <button class="btn btn-outline-primary btn-sm" @onclick="() => EditItem(item)">Edit</button>
-                                <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteItem(item)">Delete</button>
+                                <button class="btn btn-outline-primary btn-sm fw-bold" @onclick="() => EditItem(item)">Edit</button>
+                                <button class="btn btn-outline-danger btn-sm fw-bold" @onclick="() => DeleteItem(item)">Delete</button>
                             </td>
                         </tr>
                     </Virtualize>
@@ -80,12 +101,6 @@
             </table>
         </div>
     }
-
-    <div class="d-flex justify-content-center">
-        <button class="btn btn-success mt-3 col-md-4" @onclick="AddItemDialog">
-            <i class="fas fa-plus"></i> Add New Item
-        </button>
-    </div>
 
     @if (_isDialogVisible)
     {
@@ -114,6 +129,7 @@
         { "quantity", "Quantity" },
         { "retailprice", "Retail Price" },
         { "wholesaleprice", "Wholesale Price" },
+        { "purchaseprice", "Purchase Price" },
         { "manufacturer", "Manufacturer" },
         { "origin", "Origin" },
         { "expiredate", "Expiration Date" },
@@ -128,6 +144,7 @@
             ItemViewModel.OnItemsChanged += StateHasChanged;
             await ItemViewModel.LoadItems();
             ItemViewModel.CheckAllInventoryStatus(); // Check inventory status for all items
+            FilterItems();
             StateHasChanged();
             Logger.LogInformation("Inventory page loaded successfully.");
         }
@@ -147,6 +164,7 @@
         _ascending = _currentSortBy == column ? !_ascending : true;
         _currentSortBy = column;
         ItemViewModel.SortItems(_currentSortBy, _ascending);
+        FilterItems();
         StateHasChanged();
     }
 
@@ -159,6 +177,7 @@
         {
             builder.OpenComponent<EditItemForm>(0);
             builder.AddAttribute(1, "Item", _currentItem);
+            builder.AddAttribute(2, "OnClose", EventCallback.Factory.Create<bool>(this, HandleDialogClose));
             builder.CloseComponent();
         });
     }
@@ -170,6 +189,7 @@
         {
             builder.OpenComponent<EditItemForm>(0);
             builder.AddAttribute(1, "Item", _currentItem);
+            builder.AddAttribute(2, "OnClose", EventCallback.Factory.Create<bool>(this, HandleDialogClose));
             builder.CloseComponent();
         });
     }
@@ -180,6 +200,19 @@
         ShowDialog("Confirm Delete", builder =>
         {
             builder.AddContent(0, $"Are you sure you want to delete {item.ItemName}?");
+            builder.OpenElement(1, "div");
+            builder.AddAttribute(2, "class", "d-flex justify-content-end mt-3");
+            builder.OpenElement(3, "button");
+            builder.AddAttribute(4, "class", "btn btn-secondary me-2");
+            builder.AddAttribute(5, "onclick", EventCallback.Factory.Create(this, () => HandleDialogClose(false)));
+            builder.AddContent(6, "Cancel");
+            builder.CloseElement();
+            builder.OpenElement(7, "button");
+            builder.AddAttribute(8, "class", "btn btn-danger");
+            builder.AddAttribute(9, "onclick", EventCallback.Factory.Create(this, () => HandleDialogClose(true)));
+            builder.AddContent(10, "Confirm");
+            builder.CloseElement();
+            builder.CloseElement();
         });
     }
 
@@ -194,10 +227,12 @@
 
     private async Task HandleDialogClose(bool confirmed)
     {
-        _isDialogVisible = false;
-        await InvokeAsync(StateHasChanged);
-
-        if (!confirmed || _currentItem == null) return;
+        if (!confirmed || _currentItem == null)
+        {
+            _isDialogVisible = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
 
         try
         {
@@ -215,11 +250,17 @@
             }
             await ItemViewModel.RefreshAsync();
             ItemViewModel.CheckAllInventoryStatus();
+            FilterItems();
             StateHasChanged();
         }
         catch (Exception ex)
         {
             Logger.LogError($"Operation failed for item: {_currentItem?.ItemName}", ex);
+        }
+        finally
+        {
+            _isDialogVisible = false;
+            await InvokeAsync(StateHasChanged);
         }
     }
 
@@ -232,11 +273,42 @@
             await Task.Delay(300);
             await ItemViewModel.RefreshAsync();
             ItemViewModel.CheckAllInventoryStatus();
+            FilterItems();
             StateHasChanged();
         }
         catch (Exception ex)
         {
             Logger.LogError("Failed to refresh items", ex);
         }
+    }
+
+    private async Task EditQuantity(Items item)
+    {
+        try
+        {
+            await ItemViewModel.UpdateItemAsync(item);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError($"Failed to update quantity for item: {item.ItemName}", ex);
+        }
+    }
+
+    private void FilterItems()
+    {
+        ItemViewModel.FilterItems(_filterText, _filterColumn);
+        StateHasChanged();
+    }
+    private void HandleSearchInput(ChangeEventArgs e)
+    {
+        _filterText = e.Value?.ToString() ?? "";
+        FilterItems();
+    }
+
+    private void HandleFilterColumnChange(ChangeEventArgs e)
+    {
+        _filterColumn = e.Value?.ToString() ?? "Name";
+        FilterItems();
     }
 }

@@ -1,6 +1,7 @@
 ﻿using Inventory.Data;
 using Inventory.Enums;
 using Inventory.Models;
+using Inventory.ViewModels.Interface;
 
 namespace Inventory.ViewModels
 {

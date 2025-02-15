@@ -1,18 +1,25 @@
-﻿@using Inventory.Models
-@using System.Globalization
+﻿@using System.Globalization
+@using Microsoft.AspNetCore.Components.Forms
 
 <div class="card shadow-lg p-4">
     <h3 class="text-center mb-4">Monthly Sales Report</h3>
 
-    @if (MonthlySalesReport == null || MonthlySalesReport.Count == 0)
+    <!-- Month Picker -->
+    <div class="mb-3">
+        <label for="reportMonth" class="form-label">Select Month(Any date of the month)
+            <InputDate id="reportMonth" class="form-control" @bind-Value="SelectedMonth" />
+        </label>
+    </div>
+
+    @if (FilteredMonthlySaleReport == null || !FilteredMonthlySaleReport.Any())
     {
-            <div class="alert alert-info text-center">No monthly sales report available.</div>
+            <div class="alert alert-info text-center">No sales report available for the selected month.</div>
     }
     else
     {
             <div class="table-responsive">
-                <table class="table table-hover table-bordered text-center align-middle">
-                    <thead class="table-dark text-light">
+                <table class="table table-bordered">
+                    <thead class="table-light">
                         <tr>
                             <th>Month</th>
                             <th>Total Quantity Sold</th>
@@ -20,16 +27,28 @@
                         </tr>
                     </thead>
                     <tbody>
-                    @foreach (var report in MonthlySalesReport)
+                    @foreach (var report in FilteredMonthlySaleReport)
                     {
                                 <tr>
-                                    <td class="fw-bold">@report.Month.ToString("MMMM yyyy", CultureInfo.InvariantCulture)</td>
-                                    <td class="fw-bold">@report.TotalQuantitySold</td>
-                            <td class="fw-bold text-success">@report.TotalRevenue.ToString("C0", new CultureInfo("vi-VN"))</td>
+                                    <td class="align-middle">@report.Month.ToString("MMM yyyy")</td>
+                                    <td class="align-middle">@report.TotalQuantitySold</td>
+                                    <td class="align-middle text-end fw-bold">
+                                @report.TotalRevenue.ToString("C0", new CultureInfo("vi-VN"))
+                                    </td>
                                 </tr>
                     }
                     </tbody>
                 </table>
+            </div>
+
+            <!-- Summary Section -->
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <h5>Total Transactions: <strong>@FilteredMonthlySaleReport.Count</strong></h5>
+                </div>
+                <div class="col-md-6 text-end">
+                    <h5>Total Revenue: <strong>@FilteredMonthlySaleReport.Sum(r => r.TotalRevenue).ToString("C0", new CultureInfo("vi-VN"))</strong></h5>
+                </div>
             </div>
     }
 </div>
@@ -37,4 +56,10 @@
 @code {
     [Parameter]
     public List<MonthlySalesReport> MonthlySalesReport { get; set; } = new();
+
+    private DateTime SelectedMonth { get; set; } = DateTime.Today;
+
+    private List<MonthlySalesReport> FilteredMonthlySaleReport => MonthlySalesReport
+        .Where(r => r.Month.Year == SelectedMonth.Year && r.Month.Month == SelectedMonth.Month)
+        .ToList();
 }

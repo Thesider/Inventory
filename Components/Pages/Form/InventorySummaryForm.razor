@@ -1,4 +1,4 @@
-﻿@using Inventory.Models
+﻿
 
 <div class="card shadow-lg p-4">
     <h3 class="text-center mb-4">Inventory Summary</h3>
@@ -14,35 +14,43 @@
     }
     else
     {
-            <div class="table-responsive">
-                <table class="table table-hover table-striped text-center align-middle">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Category</th>
-                            <th>Total Items</th>
-                            <th>In Stock</th>
-                            <th>Low Stock</th>
-                            <th>Expired</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+        <div class="table-responsive">
+            <table class="table table-hover table-striped text-center align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Category</th>
+                        <th>Total Items</th>
+                        <th>In Stock</th>
+                        <th>Low Stock</th>
+                        <th>Out of Stock</th>
+                        <th>Expiring Soon</th>
+                        <th>Expired</th>
+                    </tr>
+                </thead>
+                <tbody>
                     @foreach (var category in FilteredInventorySummary)
                     {
-                                <tr>
-                                    <td>@category.Key</td>
-                                    <td>@category.Value.TotalItems</td>
-                                    <td class="fw-bold text-success">@category.Value.InStock</td>
-                                    <td class="fw-bold @(category.Value.LowStock > 0 ? "text-warning" : "text-muted")">
+                        <tr>
+                            <td>@category.Key</td>
+                            <td>@category.Value.TotalItems</td>
+                            <td class="fw-bold text-success">@category.Value.InStock</td>
+                            <td class="fw-bold @(category.Value.LowStock > 0 ? "text-warning" : "text-muted")">
                                 @category.Value.LowStock
-                                    </td>
-                                    <td class="fw-bold @(category.Value.Expired > 0 ? "text-danger" : "text-muted")">
+                            </td>
+                            <td class="fw-bold @(category.Value.InStock == 0 ? "text-danger" : "text-muted")">
+                                @category.Value.OutOfStock
+                            </td>
+                            <td class="fw-bold @(category.Value.Expiring > 0 ? "text-warning" : "text-muted")">
+                                @category.Value.Expiring
+                            </td>
+                            <td class="fw-bold @(category.Value.Expired > 0 ? "text-danger" : "text-muted")">
                                 @category.Value.Expired
-                                    </td>
-                                </tr>
+                            </td>
+                        </tr>
                     }
-                    </tbody>
-                </table>
-            </div>
+                </tbody>
+            </table>
+        </div>
     }
 </div>
 
@@ -53,9 +61,10 @@
     private string SearchTerm { get; set; } = "";
 
     private Dictionary<string, InventorySummary> FilteredInventorySummary =>
-        string.IsNullOrWhiteSpace(SearchTerm)
-        ? InventorySummary
-        : InventorySummary
-            .Where(i => i.Key.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase))
-            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+     string.IsNullOrWhiteSpace(SearchTerm)
+     ? InventorySummary
+     : InventorySummary
+         .Where(i => i.Key.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase))
+         .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
 }

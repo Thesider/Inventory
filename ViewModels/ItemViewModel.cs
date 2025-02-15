@@ -1,6 +1,7 @@
 using Inventory.Data;
 using Inventory.Logger;
 using Inventory.Models;
+using Inventory.ViewModels.Interface;
 using System.Collections.ObjectModel;
 
 namespace Inventory.ViewModels;
@@ -243,7 +244,9 @@ public class ItemViewModel : IItemViewModel
                 return;
             }
 
-            FilteredItems = filterColumn.ToLower() switch
+
+            FilteredItems = filterColumn.ToLower()
+            switch
             {
                 "name" => _allItems.Where(i => i.ItemName.Contains(filterText, StringComparison.OrdinalIgnoreCase)).ToList(),
                 "wholesaleprice" => _allItems.Where(i => i.WholesalePrice.ToString().Contains(filterText)).ToList(),
@@ -253,7 +256,9 @@ public class ItemViewModel : IItemViewModel
                 "origin" => _allItems.Where(i => i.Origin.Contains(filterText, StringComparison.OrdinalIgnoreCase)).ToList(),
                 _ => _allItems.Where(i => i.ItemName.Contains(filterText, StringComparison.OrdinalIgnoreCase)).ToList()
             };
+
         }
+
         catch (Exception ex)
         {
             _logger.LogError($"Error filtering items by {filterColumn}", ex);
@@ -265,6 +270,8 @@ public class ItemViewModel : IItemViewModel
     {
         if (item.ExpireDate <= DateTime.Today)
             return "Expired";
+        if (item.ExpireDate <= DateTime.Today.AddDays(30))
+            return "Expiring Soon";
         if (item.Quantity == 0)
             return "Out of Stock";
         if (item.Quantity <= item.CriticalAmmount)
@@ -276,6 +283,8 @@ public class ItemViewModel : IItemViewModel
     {
         if (item.ExpireDate <= DateTime.Today)
             return "table-danger";
+        if (item.ExpireDate <= DateTime.Today.AddDays(30))
+            return "table-warning";
         if (item.Quantity == 0)
             return "table-warning";
         if (item.Quantity <= item.CriticalAmmount)

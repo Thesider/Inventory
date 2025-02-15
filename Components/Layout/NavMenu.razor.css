@@ -13,13 +13,56 @@
 }
 
     .navbar-toggler:checked {
-        background: linear-gradient(135deg, #1B262C, #0F4C75);
+        background: linear-gradient(135deg, #4731b1, #0F4C75);
         border-color: rgba(255, 255, 255, 0.5);
     }
 
+.navbar-toggler-label {
+    display: block;
+    cursor: pointer;
+    width: 3.5rem;
+    height: 2.5rem;
+    color: white;
+    position: absolute;
+    top: 0.5rem;
+    right: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(135deg, #0F4C75, #3282B8);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+    .navbar-toggler-label .navbar-toggler-icon {
+        display: inline-block;
+        width: 1.5rem;
+        height: 1.5rem;
+        background: url('data:image/svg+xml;base64,...') no-repeat center center;
+        background-size: contain;
+    }
+
+.nav-scrollable {
+    display: none;
+    height: calc(100vh - 3.5rem);
+    overflow-y: auto;
+    background: linear-gradient(135deg, #0F4C75, #1B262C);
+}
+
+.navbar-toggler:checked ~ .nav-scrollable {
+    display: block;
+}
+
+@media (min-width: 641px) {
+    .navbar-toggler-label {
+        display: none;
+    }
+
+    .nav-scrollable {
+        display: block;
+    }
+}
+
 .top-row {
     height: 3.5rem;
-    background: linear-gradient(90deg, #1B262C, #0F4C75);
+    background: linear-gradient(90deg, #4731b1, #0F4C75);
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
 }
 
@@ -63,7 +106,7 @@
         }
 
         .nav-item ::deep a:hover {
-            background: linear-gradient(135deg, #0F4C75, #1B262C);
+            background: linear-gradient(135deg, #0F4C75, #4731b1 );
             color: white;
             border: 1px solid #BBE1FA;
             border-radius: 8px;
@@ -78,6 +121,7 @@
         display: block;
         height: calc(100vh - 3.5rem);
         overflow-y: auto;
-        background: linear-gradient(135deg, #0F4C75, #1B262C);
+        background: linear-gradient(135deg, #0F4C75, #4731b1 );
     }
 }
+
