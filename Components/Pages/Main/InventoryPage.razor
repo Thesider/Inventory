@@ -18,15 +18,12 @@
         <!-- Search Input and Filter Column Selection -->
         <div class="col-md-6 d-flex justify-content-center">
             <input type="text"
-                   class="form-control me-2"
-                   placeholder="Search..."
-                   value="@_filterText"
-                   @oninput="HandleSearchInput" />
+            class="form-control me-2"
+            placeholder="Search..."
+            value="@_filterText"
+            @oninput="HandleSearchInput" />
 
-
-                <!-- options -->
-
-            <select class="form-select w-auto" @bind="_filterColumn">
+            <select class="form-select w-auto" @bind="_filterColumn" @bind:event="onchange">
                 <option value="Name">Name</option>
                 <option value="Category">Category</option>
                 <option value="Manufacturer">Manufacturer</option>
@@ -80,9 +77,9 @@
                             <td>@item.ItemCategory</td>
                             <td>
                                 <input type="number" class="form-control-plaintext text-center"
-                                       @bind="item.Quantity"
-                                       @bind:event="onchange"
-                                       style="margin: 0; padding: 0;" />
+                                @bind="item.Quantity"
+                                @bind:event="onchange"
+                                style="margin: 0; padding: 0;" />
                             </td>
                             <td>@item.RetailPrice.ToString("C0", new CultureInfo("vi-VN"))</td>
                             <td>@item.WholesalePrice.ToString("C0", new CultureInfo("vi-VN"))</td>
@@ -143,7 +140,7 @@
         {
             ItemViewModel.OnItemsChanged += StateHasChanged;
             await ItemViewModel.LoadItems();
-            ItemViewModel.CheckAllInventoryStatus(); // Check inventory status for all items
+            ItemViewModel.CheckAllInventoryStatus();
             FilterItems();
             StateHasChanged();
             Logger.LogInformation("Inventory page loaded successfully.");
@@ -300,15 +297,18 @@
         ItemViewModel.FilterItems(_filterText, _filterColumn);
         StateHasChanged();
     }
+
     private void HandleSearchInput(ChangeEventArgs e)
     {
         _filterText = e.Value?.ToString() ?? "";
         FilterItems();
+        StateHasChanged();
     }
 
     private void HandleFilterColumnChange(ChangeEventArgs e)
     {
         _filterColumn = e.Value?.ToString() ?? "Name";
         FilterItems();
+        StateHasChanged();
     }
 }

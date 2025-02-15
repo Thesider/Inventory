@@ -7,13 +7,10 @@
 
     public enum Category
     {
-        Pill, Syrup, Injection, Cream, Powder, Drops, Spray, Inhaler, Other
+        Pill, Bottle, Injection, Tube, Powder, Cream, Spray, Drops, Inhaler, Syrup, Other
     }
 
-    public enum Status
-    {
-        Available, OutOfStock, Expired, RunningLow
-    }
+    public enum Status { Available, OutOfStock, Expired, RunningLow }
 
 
 }

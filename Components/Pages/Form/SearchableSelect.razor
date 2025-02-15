@@ -1,16 +1,16 @@
 ﻿<div class="mb-2">
     <div class="mb-2">
         <input type="text" class="form-control" placeholder="Search..."
-               @bind="SearchQuery" @bind:event="oninput" />
+               @bind="SearchQuery" @bind:event="oninput" @onfocus="ShowDialog" />
     </div>
 
-    @if (FilteredItems.Any())
+    @if (_isDialogVisible && FilteredItems.Any())
     {
         <div class="position-relative">
             <ul class="list-group position-absolute w-100 bg-white border shadow-sm">
                 @foreach (var item in FilteredItems)
                 {
-                    <li class="list-group-item list-group-item-action"
+                    <li class="px-4 py-2 cursor-pointer hover:bg-gray-100 transition-all rounded-md"
                         @onclick="() => SelectItem(item)">
                         @item.ItemName
                     </li>
@@ -31,15 +31,23 @@
     public EventCallback<int> OnChange { get; set; }
 
     private string SearchQuery { get; set; } = string.Empty;
+    private bool _isDialogVisible = false;
+
     private IEnumerable<Items> FilteredItems =>
         string.IsNullOrWhiteSpace(SearchQuery)
-            ? Enumerable.Empty<Items>()  // Hide when empty
+            ? Enumerable.Empty<Items>()
             : Items.Where(item => item.ItemName.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase));
 
     private async Task SelectItem(Items item)
     {
-        SearchQuery = item.ItemName; // Fill input with selection
+        SearchQuery = item.ItemName;
         Value = item.ItemID;
+        _isDialogVisible = false;
         await OnChange.InvokeAsync(Value);
+    }
+
+    private void ShowDialog()
+    {
+        _isDialogVisible = true;
     }
 }
