@@ -40,7 +40,7 @@
 
     private async Task SelectItem(Items item)
     {
-        SearchQuery = item.ItemName;
+        SearchQuery = item.ItemName?? string.Empty;
         Value = item.ItemID;
         _isDialogVisible = false;
         await OnChange.InvokeAsync(Value);

@@ -10,7 +10,7 @@ namespace Inventory.Models
         [Column("ServiceId")]
         public int ServiceId { get; set; }
         [Column("Service Name")]
-        public string ServiceName { get; set; }
+        public string ServiceName { get; set; } = string.Empty;
         [Column("Service Price")]
         public double ServicePrice { get; set; }
         [Column("Quantity")]

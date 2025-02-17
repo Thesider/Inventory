@@ -84,11 +84,11 @@ namespace Inventory.Data
             return _cachedItems!;
         }
 
-        public Task<Items?> GetItemAsync(int id)
+        public async Task<Items?> GetItemAsync(int id)
         {
-            return _database.Table<Items>()
-                            .Where(i => i.ItemID == id)
-                            .FirstOrDefaultAsync();
+            return await _database.Table<Items>()
+                                  .Where(i => i.ItemID == id)
+                                  .FirstOrDefaultAsync();
         }
 
         public async Task<int> SaveItemAsync(List<Items> items)

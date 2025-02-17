@@ -58,7 +58,7 @@ public class SaleViewModel : ISaleViewModel
         }
         catch (Exception ex)
         {
-            _logger.LogError("Failed to load data", ex);
+            _logger.LogError(ex, "Failed to load data");
         }
     }
 
@@ -70,7 +70,7 @@ public class SaleViewModel : ISaleViewModel
         }
         catch (Exception ex)
         {
-            _logger.LogError("Failed to load sales history", ex);
+            _logger.LogError(ex, "Failed to load sales history");
         }
     }
 
@@ -90,10 +90,10 @@ public class SaleViewModel : ISaleViewModel
                     SaleItems = dateGroup
                         .Select(sale => new SaleItemDetail
                         {
-                            ItemName = sale.ItemName,
+                            ItemName = sale.ItemName ?? string.Empty,
                             Quantity = sale.QuantitySold,
                             Amount = sale.TotalAmount,
-                            AddOnName = sale.AddOnName,
+                            AddOnName = sale.AddOnName ?? string.Empty,
                             AddOnAmount = sale.AddOnAmount ?? 0
                         })
                         .ToList()
@@ -105,7 +105,7 @@ public class SaleViewModel : ISaleViewModel
         }
         catch (Exception ex)
         {
-            _logger.LogError("Failed to generate daily sales report", ex);
+            _logger.LogError(ex, "Failed to generate daily sales report");
         }
     }
 
@@ -128,7 +128,7 @@ public class SaleViewModel : ISaleViewModel
         }
         catch (Exception ex)
         {
-            _logger.LogError("Failed to generate monthly sales report", ex);
+            _logger.LogError(ex, "Failed to generate monthly sales report");
         }
     }
 
@@ -205,6 +205,7 @@ public class SaleViewModel : ISaleViewModel
                 .Select(si => Items.FirstOrDefault(i => i.ItemID == si.ItemId))
                 .Where(item => item != null)
                 .Distinct()
+                .Cast<Items>()
                 .ToList();
 
             await _databaseService.SaveItemAsync(itemsToUpdate);
@@ -222,7 +223,7 @@ public class SaleViewModel : ISaleViewModel
         }
         catch (Exception ex)
         {
-            _logger.LogError("Failed to process multi-item sale.", ex);
+            _logger.LogError(ex, "Failed to process multi-item sale.");
             return false;
         }
     }
@@ -236,7 +237,7 @@ public class SaleViewModel : ISaleViewModel
         }
         catch (Exception ex)
         {
-            _logger.LogError("Failed to update sale amount.", ex);
+            _logger.LogError(ex, "Failed to update sale amount.");
         }
     }
 

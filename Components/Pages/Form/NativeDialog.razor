@@ -10,7 +10,7 @@
             <div class="modal-body">
                 @ChildContent
             </div>
-          
+
         </div>
     </div>
 </div>
@@ -19,7 +19,7 @@
     private bool _isVisible = false;
 
     [Parameter] public string Title { get; set; } = "Confirmation";
-    [Parameter] public RenderFragment ChildContent { get; set; }
+    [Parameter] public RenderFragment ChildContent { get; set; } = default!;
     [Parameter] public bool ShowCancelButton { get; set; } = true;
     [Parameter] public string ConfirmButtonText { get; set; } = "Confirm";
     [Parameter] public EventCallback<bool> OnClose { get; set; }
@@ -37,8 +37,8 @@
         StateHasChanged();
     }
 
-    private void HandleBackdropClick()
+    private async void HandleBackdropClick()
     {
-        Close();
+        await Close();
     }
 }

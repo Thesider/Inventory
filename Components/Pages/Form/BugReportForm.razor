@@ -12,6 +12,12 @@
             <label for="message" class="form-label">Bug Description</label>
             <InputText id="message" class="form-control" @bind-Value="bugLog.Message" placeholder="Describe the bug briefly" />
         </div>
+
+        <div class="text-end">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-paper-plane"></i> Submit
+            </button>
+        </div>
     </EditForm>
 
     @if (isSubmitSuccess)

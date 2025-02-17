@@ -41,7 +41,7 @@ else
                     {
                         <tr>
                             <td class="px-3">@service.ServiceName</td>
-                            <td class="px-3">@service.ServicePrice</td>
+                            <td class="px-3">@service.ServicePrice.ToString("C0",new CultureInfo("vi-VN"))</td>
                             <td class="text-end px-3">
                                 <button class="btn btn-sm btn-outline-secondary me-2" @onclick="() => EditService(service)">Edit</button>
                                 <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteService(service.ServiceId)">Delete</button>

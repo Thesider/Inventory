@@ -192,7 +192,9 @@ namespace Inventory.Logger
                 if (File.Exists(_bugLogFile))
                 {
                     var lines = await File.ReadAllLinesAsync(_bugLogFile);
-                    var bugLogs = lines.Select(line => JsonSerializer.Deserialize<BugLog>(line)).ToArray();
+                    var bugLogs = lines.Select(line => JsonSerializer.Deserialize<BugLog>(line)!)
+                                       .Where(bugLog => bugLog != null)
+                                       .ToArray();
                     return bugLogs;
                 }
 

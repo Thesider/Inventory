@@ -34,7 +34,7 @@ namespace Inventory.ViewModels
             }
             catch (Exception ex)
             {
-                _logger.LogError("Failed to load services.", ex);
+                _logger.LogError(ex, "Failed to load services.");
             }
         }
 
@@ -48,7 +48,7 @@ namespace Inventory.ViewModels
             }
             catch (Exception ex)
             {
-                _logger.LogError("Failed to add service.", ex);
+                _logger.LogError(ex, "Failed to add service.");
             }
         }
 
@@ -67,7 +67,7 @@ namespace Inventory.ViewModels
             }
             catch (Exception ex)
             {
-                _logger.LogError("Failed to update service.", ex);
+                _logger.LogError(ex, "Failed to update service.");
             }
         }
 
@@ -85,7 +85,7 @@ namespace Inventory.ViewModels
             }
             catch (Exception ex)
             {
-                _logger.LogError("Failed to delete service.", ex);
+                _logger.LogError(ex, "Failed to delete service.");
             }
         }
 
